@@ -2,6 +2,11 @@
 /*Creado por Fer*/
 /*Creado por santiago*/
 // Hola gente, aquí Rodrigo
+
+printf("Hola mundo");
+
+
 // Hola mundo 
 //hola
+
 //Lo logré gente...
