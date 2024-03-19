@@ -10,4 +10,4 @@ printf("Hola mundo");
 //hola
 
 //Lo logré gente....
-//Probando desde Git Bash
+//Probando desde Visual
