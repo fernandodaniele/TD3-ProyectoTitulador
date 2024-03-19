@@ -11,3 +11,4 @@ printf("Hola mundo");
 
 //Lo logré gente....
 //Probando desde Visual
+//Probando desde la terminal de Linux
