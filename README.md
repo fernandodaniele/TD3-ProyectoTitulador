@@ -1,1 +1,2 @@
 # TD3-ProyectoTitulador
+El proyecto se basa en la actualización del sistema embebido del prototipo de un titulador potenciométrico automático, el cual fue realizado en el marco del proyecto PID “Abordaje multidisciplinar en la obtención de un titulador automático para el laboratorio de servicios de la Facultad Regional San Francisco”, código AMUTNSF0007673.
