@@ -7,10 +7,10 @@
 #include "main.h"
 #include "pantallaTFT.h"
 
-
 // Variable para el estado actual
 pantalla_t pantalla;
 int opcion =0;
+float resultado;
 
 // Función para controlar errores de la MEF (Error handler)
 void errorMEF( void )
@@ -35,6 +35,7 @@ void actualizarMEF( )
     	   switch (opcion){
             case 1:
                pantalla = MENU_ELEGIR_BUFFER;
+               iniciarCalibracion();
                pantallaElegirBuffer();
                break;
             case 2:
@@ -80,6 +81,7 @@ void actualizarMEF( )
                break;
             case 4:
                pantalla = MENU_INICIAL;
+               finalizarCalibracion();
                pantallaInicial();
                break;
             default:
@@ -129,17 +131,31 @@ void actualizarMEF( )
 
       case MENU_TITULACION:
          opcion = tactilMedir();
+         
     	   if(opcion==4){
-            if(finalizarTitulacion()){
+            if(cancelarTitulacion()){
               // Serial.println("Se finalizo titulacion");
-            }
+              delay(3000);
+               if(estadoTitulacion(&resultado))
+               {
+                  imprimirResultado(resultado);
+               }
             else
             {
               // Serial.println("Error en finalizar titulacion");
+              imprimirError();
             }
             pantalla = MENU_INICIAL;
             pantallaInicial();
     	   }
+         //Se lee el puerto serie para ver si finalizó la titulación
+         
+         else if(estadoTitulacion(&resultado))
+         {
+            imprimirResultado(resultado);
+            pantalla = MENU_INICIAL;
+            pantallaInicial();
+         }
     	   break;
 
       case MENU_AJUSTES:
@@ -245,4 +261,5 @@ void actualizarMEF( )
     	 errorMEF();
     	 break;
    }
+}
 }
