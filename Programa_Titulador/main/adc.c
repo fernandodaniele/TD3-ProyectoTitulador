@@ -80,7 +80,7 @@ void TaskADC(void *taskParmPtr)
         if(modo == DIRECTO)
         {
             LecturaCruda = adc1_get_raw(ADC_CHANNEL);
-            //vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(10));
             modo++;
         }
         else if(modo == FILTRADO)
@@ -89,14 +89,15 @@ void TaskADC(void *taskParmPtr)
             LecturaFiltrada = (int)filtro;
             LecturaFiltrada *= ((-0.13 * (LecturaFiltrada - 2047)) / 2048) + 1.13;
             modo++;
-        }
+        }           
         else if(modo == CONVERSION)
         {
             Vout_filtrada_corregida = (LecturaFiltrada * T_MAX_ADC) / BITS12;
-            // Vout_PH = ((LecturaFiltrada)*T_PH) / BITS12; 
-            // Vout_PH = 14 - Vout_PH;
-            Vout_PH = (Vout_filtrada_corregida - valoresRecta.Ordenada) / valoresRecta.Pendiente;
-            //Vout_PH = (Vout_filtrada_corregida - 2.356) / (-0.106);
+            //Vout_PH = ((LecturaFiltrada)*T_PH) / BITS12; 
+            //Vout_PH = Vout_PH*1.8529;
+            //Vout_PH = -7.2286*Vout_filtrada_corregida + 24.662;
+            //Vout_PH = (Vout_filtrada_corregida - valoresRecta.Ordenada) / valoresRecta.Pendiente;
+            Vout_PH = (Vout_filtrada_corregida - 3.41) / (-0.13833);
             modo++;
         }
 
@@ -107,8 +108,9 @@ void TaskADC(void *taskParmPtr)
             if(esp_timer_get_time() > millisAnt + 100*3000)
             {
                 millisAnt = esp_timer_get_time();
+                ESP_LOGI(TAG_ADC, "Bits: %d", LecturaFiltrada);
                 ESP_LOGI(TAG_ADC, "Vout_filtrada_corregida: %.03f", Vout_filtrada_corregida);
-                ESP_LOGI(TAG_ADC, "PH: %.03f", Vout_PH);
+                ESP_LOGI(TAG_ADC, "PH: %.01f", Vout_PH);
             }
             modo = 0;
         }
@@ -119,10 +121,15 @@ void lectura(char estado_calibracion)
 {
     // ---Codigo referente a la lectura del valor para calibra---
     // ---Aprox 2 min para que estabilice la medicion---
+    // int n = 0;
     switch(estado_calibracion)
     {
         case '1':       // PH 4
             // ---AGREGAR CODIGO DE APROXIMACIÓN---
+            // while(n < 1000) // 1000 Iteraziones
+            // {
+
+            // }
             valoresCalibracion.lectura_PH4 = Vout_filtrada_corregida;
             break;
         

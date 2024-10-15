@@ -22,6 +22,9 @@ void TaskUart(void *taskParmPtr);      // Prototipo de la función de la tarea
 
 static const char *TAG_UART = "UART";
 
+extern float Vout_PH;
+char valor[5];
+
 bool flag_Agitador = false;
 //bool flag_Limpieza = false;
 //uint8_t flag_Calibracion = 0;
@@ -114,7 +117,7 @@ void TaskUart(void *taskParmPtr)
         }
 
         // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
-        uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+        //uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
 
         // Recortamos el dato que se recibe
         Dato[1] = '\0';
@@ -125,18 +128,24 @@ void TaskUart(void *taskParmPtr)
         if(strcmp(Dato, Agitador_ON) == 0)
         {
             //ESP_LOGI(TAG_UART, "Entrada a AI\n");
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             flag_Agitador = true;
             xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
         }
 
         if(strcmp(Dato, Agitador_OFF) == 0)
         {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             flag_Agitador = false;
             xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
         }
 
         if(strcmp(Dato, Limpieza_ON) == 0)
         {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             limpieza.Giro_Limpieza = 0;
             limpieza.Habilitador_Limpieza = true;
             xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
@@ -144,8 +153,20 @@ void TaskUart(void *taskParmPtr)
 
         if(strcmp(Dato, Limpieza_OFF) == 0)
         {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             limpieza.Habilitador_Limpieza = false;
             //xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
+        }
+
+        if(strcmp(Dato, Lectura_ADC) == 0)
+        {
+            // ---Le enviamos el valor actual de PH leido al ATMega cuando se recibe "C"---
+            // ---Además, le enviamos "/" justo despues del valor---
+            snprintf(valor, sizeof(valor), "%.02f", Vout_PH);
+            uart_write_bytes(UART_NUM, valor, sizeof(valor));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
 
         // if(strcmp(Dato, Agitador_ON) == 0)

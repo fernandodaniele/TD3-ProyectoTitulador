@@ -18,12 +18,12 @@
 
 #define ADC_WIDTH           12                  // Puede ser un valor entre 9 (0 – 511) y 12 bits (0 – 4095).
 #define FILTRO              1000
-#define ADC_CHANNEL         ADC1_CHANNEL_4      // Corresponde al GPIO 32
-#define ADC_ATTEN           ADC_ATTEN_DB_12     // Atenuación de 12 dB en el voltaje de entrada para usar el ADC
+#define ADC_CHANNEL         ADC1_CHANNEL_6      // Corresponde al GPIO 32
+#define ADC_ATTEN           ADC_ATTEN_DB_11     // Atenuación de 12 dB en el voltaje de entrada para usar el ADC
 #define MUESTRAS            64                  // Muestras para obtener un promedio del valor del ADC
 #define T_PH                14.0
 #define BITS12              4096
-#define T_MAX_ADC           3.218
+#define T_MAX_ADC           3.3
 
 /*==================[Variables]===================================*/
 

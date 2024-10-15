@@ -47,6 +47,7 @@
 /*==================[Variables globales]======================*/
 
 gpio_int_type_t P_Agitador = GPIO_NUM_17;
+gpio_int_type_t P_3_3      = GPIO_NUM_32;       // Salida 3.3 
 gpio_int_type_t P_Motor    = GPIO_NUM_12;
 gpio_int_type_t P_Giro     = GPIO_NUM_27;
 
@@ -106,6 +107,10 @@ void app_main(void)
 
     // Iniciar ADC
     adc_init();
+
+    esp_rom_gpio_pad_select_gpio(P_3_3);
+    gpio_set_direction(P_3_3, GPIO_MODE_OUTPUT);
+    gpio_set_level(P_3_3, true);
 
     BaseType_t err = xTaskCreatePinnedToCore(
         TaskAgitador,                     	// Funcion de la tarea a ejecutar
