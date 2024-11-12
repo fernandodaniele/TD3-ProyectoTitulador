@@ -130,8 +130,14 @@ void app_main(void)
     ESP_LOGI(TAG_MAIN, "Pendiente -> %.03f", valoresRecta.Pendiente);
     ESP_LOGI(TAG_MAIN, "Ordenada -> %.03f", valoresRecta.Ordenada);
 
-    // Iniciar Comunicacion Wifi
-    wifi_init();
+    // // Iniciar Comunicacion Wifi
+    // wifi_init();
+
+    // Iniciar Wi-Fi en modo Access Point
+    wifi_init_softap();
+
+    // Iniciar el servidor web
+    //start_webserver();
 
     // Iniciar UART
     init_uart();
@@ -367,7 +373,7 @@ void TaskTitulacion(void *taskParmPtr)
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
-            if(volumen_registrado >= Volumen_Comp) // ---AGREGAR EL GUARDADO DEL VOLUMEN DE COMP EN LA FLASH (35 Por Defecto)---
+            if(volumen_registrado >= Volumen_Comp) 
             {
                 fin_titulacion();
                 eliminar_volumen_registrado();
@@ -381,7 +387,7 @@ void TaskTitulacion(void *taskParmPtr)
             // Calculo de volumen de corte 
             if(dif > dif_guardado)
             {
-                registrar_volumen_inflexion(&ptr_dif);
+                registrar_volumen_inflexion(ptr_dif);
             }
 
             ESP_LOGI(TAG_MAIN, "\nDif -> %.02f", dif);

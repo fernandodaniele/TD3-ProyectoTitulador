@@ -14,11 +14,15 @@
 
 /*==================[Definiciones]===================================*/
 
-#define WIFI_SSID   "."
-#define WIFI_PASS   "43364336"
+// #define WIFI_SSID   "."
+// #define WIFI_PASS   "43364336"
+
+#define WIFI_SSID "ESP32_AP"   // Nombre de la red WiFi (SSID)
+#define WIFI_PASS "12345678"   // Contraseña de la red WiFi (mínimo 8 caracteres)
 
 /*==================[Prototipos de funciones]======================*/
 
-void wifi_init();
+// void wifi_init();
+void wifi_init_softap();
 
 #endif
