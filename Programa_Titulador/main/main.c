@@ -27,7 +27,7 @@
 
 /*==================[Definiciones]======================*/
 
-#define T_TITULACION_MS_01ml    1410    // ---VER---(1150)
+#define T_TITULACION_MS_01ml    1250    // ---VER---(1150)
 #define T_TITULACION_01ml       pdMS_TO_TICKS(T_TITULACION_MS_01ml)
 #define T_TITULACION_MS_1ml     T_TITULACION_MS_01ml*10
 #define T_TITULACION_1ml        pdMS_TO_TICKS(T_TITULACION_MS_1ml)
@@ -49,10 +49,10 @@
 
 /*==================[Variables globales]======================*/
 
-gpio_int_type_t P_Agitador = GPIO_NUM_17;
-gpio_int_type_t P_3_3      = GPIO_NUM_22;       // Salida 3.3 
-gpio_int_type_t P_Motor    = GPIO_NUM_12;
-gpio_int_type_t P_Giro     = GPIO_NUM_27;
+gpio_int_type_t P_Agitador      = GPIO_NUM_21;
+gpio_int_type_t P_Enable_Bomba  = GPIO_NUM_22;
+gpio_int_type_t P_Motor         = GPIO_NUM_12;
+gpio_int_type_t P_Giro          = GPIO_NUM_27;
 
 static const char *TAG_MAIN = "MAIN";
 
@@ -64,20 +64,29 @@ char *key_pendiente = "Pend";
 char *key_ordenada = "Ord";
 
 Limpieza limpieza_main;
-float Vout_PH_Ant = 0.0, Volumen_Inflexion;
-float dif = 0.0, dif_guardado = 0.0;
 
+float Volumen_Inflexion;
+float Vout_PH_Ant = 0.0;
+float *ptr_Vout_PH_Ant = &Vout_PH_Ant;
+float dif = 0.0;
+float *ptr_dif = &dif;
+
+extern float Volumen_Inflexion;
 extern float Vout_PH;
 extern int Volumen_Comp;
 extern bool flag_Titular;
 
+extern float dif_guardado;
+extern float volumen_registrado;
+
 /*==================[Handles]==============================*/
 
-QueueHandle_t S_Agitador    = NULL;
+QueueHandle_t S_Agitador        = NULL;
 //SemaphoreHandle_t S_Limpieza = NULL;
-QueueHandle_t S_Limpieza    = NULL;
-QueueHandle_t S_Calibracion = NULL;
-QueueHandle_t S_Titulacion  = NULL;
+QueueHandle_t S_Limpieza        = NULL;
+QueueHandle_t S_Calibracion     = NULL;
+QueueHandle_t S_Titulacion      = NULL;
+QueueHandle_t S_Elim_Volumen    = NULL;
 nvs_handle_t app_nvs_handle;
 
 /*==================[Prototipos de funciones]======================*/
@@ -93,15 +102,15 @@ static void example_ledc_init(void);
 void app_main(void)
 {
 
-    S_Agitador = xQueueCreate(1, sizeof(bool));
+    S_Agitador      = xQueueCreate(1, sizeof(bool));
     //S_Limpieza = xSemaphoreCreateBinary();
-    S_Limpieza = xQueueCreate(1, sizeof(limpieza_main));
-    S_Calibracion = xQueueCreate(1, sizeof(char*));
-    S_Titulacion = xQueueCreate(1, sizeof(bool));
+    S_Limpieza      = xQueueCreate(1, sizeof(limpieza_main));
+    S_Calibracion   = xQueueCreate(1, sizeof(char*));
+    S_Titulacion    = xQueueCreate(1, sizeof(bool));
 
-    esp_rom_gpio_pad_select_gpio(P_3_3);
-    gpio_set_direction(P_3_3, GPIO_MODE_OUTPUT);
-    gpio_set_level(P_3_3, 1);
+    esp_rom_gpio_pad_select_gpio(P_Enable_Bomba);
+    gpio_set_direction(P_Enable_Bomba, GPIO_MODE_OUTPUT);
+    gpio_set_level(P_Enable_Bomba, 1);
 
     // Set the LEDC peripheral configuration
     example_ledc_init();
@@ -129,10 +138,6 @@ void app_main(void)
 
     // Iniciar ADC
     adc_init();
-
-    esp_rom_gpio_pad_select_gpio(P_3_3);
-    gpio_set_direction(P_3_3, GPIO_MODE_OUTPUT);
-    gpio_set_level(P_3_3, true);
 
     BaseType_t err = xTaskCreatePinnedToCore(
         TaskAgitador,                     	// Funcion de la tarea a ejecutar
@@ -252,11 +257,13 @@ void TaskLimpieza(void *taskParmPtr)
         {
             // Habilitar Enabler
             ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+            gpio_set_level(P_Enable_Bomba, 0);
         }
         else if(limpieza_main.Habilitador_Limpieza == false)
         {
             // Desabiilitar Enabler
             ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+            gpio_set_level(P_Enable_Bomba, 1);
         }
 
         //xLastWakeTime = xTaskGetTickCount();
@@ -327,7 +334,6 @@ void TaskTitulacion(void *taskParmPtr)
 
     // float dif = 0;
     // float *ptr_dif = &dif;
-    float volumen_registrado = 0;
 
     TickType_t xPeriodicity_1ml     = T_TITULACION_1ml; 
     TickType_t xPeriodicity_01ml    = T_TITULACION_01ml; 
@@ -341,43 +347,46 @@ void TaskTitulacion(void *taskParmPtr)
         {
             if(dif < 0.2)   // Dif de PH 
             {
-                Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
+                //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
                 xLastWakeTime = xTaskGetTickCount();
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
                 vTaskDelayUntil(&xLastWakeTime, xPeriodicity_1ml);
                 ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-                volumen_registrado += 1;
+                volumen_suma_1();
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
             if(dif >= 0.2)   // Dif de PH 
             {
-                Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
+                //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
                 xLastWakeTime = xTaskGetTickCount();
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
                 vTaskDelayUntil(&xLastWakeTime, xPeriodicity_01ml);
                 ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-                volumen_registrado += 0.1;
+                volumen_suma_01();
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
-            if(volumen_registrado >= Volumen_Comp)
+            if(volumen_registrado >= Volumen_Comp) // ---AGREGAR EL GUARDADO DEL VOLUMEN DE COMP EN LA FLASH (35 Por Defecto)---
             {
                 fin_titulacion();
+                eliminar_volumen_registrado();
             }
 
             // Cálculo de la diferencia de PH 
             // Lo hacemos aca ya que en el proceso del ADC se esta midiendo constantemente, por lo tanto la dif siempre era muy pequeña
             dif = sqrt(pow((Vout_PH - Vout_PH_Ant), 2));
+            Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
 
             // Calculo de volumen de corte 
             if(dif > dif_guardado)
             {
-                dif_guardado = dif;
-                Volumen_Inflexion = volumen_registrado;
+                registrar_volumen_inflexion(&ptr_dif);
             }
 
-            ESP_LOGI(TAG_MAIN, "Dif -> %.02f", dif);
+            ESP_LOGI(TAG_MAIN, "\nDif -> %.02f", dif);
+            ESP_LOGI(TAG_MAIN, "Volumen Registrado -> %.02f", volumen_registrado);
+            ESP_LOGI(TAG_MAIN, "Volumen Inflexion -> %.02f\n", Volumen_Inflexion);
 
             vTaskDelay(T_MEDICIONES); // Tiempo de espera entre cada inyección 
         }

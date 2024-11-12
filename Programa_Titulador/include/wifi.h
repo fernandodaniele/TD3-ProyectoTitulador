@@ -14,8 +14,8 @@
 
 /*==================[Definiciones]===================================*/
 
-#define WIFI_SSID   "PoloWifi-Privada"
-#define WIFI_PASS   "20PoloCienTec23"
+#define WIFI_SSID   "."
+#define WIFI_PASS   "43364336"
 
 /*==================[Prototipos de funciones]======================*/
 

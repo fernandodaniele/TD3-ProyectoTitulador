@@ -23,6 +23,8 @@ void TaskUart(void *taskParmPtr);      // Prototipo de la función de la tarea
 
 static const char *TAG_UART = "UART";
 
+extern gpio_int_type_t P_Enable_Bomba;
+
 extern float Vout_PH;
 char valor[6];
 
@@ -33,10 +35,14 @@ bool flag_Titular   = false;
 
 int Volumen_Comp = 0; 
 char Volumen_Anterior[4];
-extern float Volumen_Inflexion;
-char Volumen_Inflexion_ptr[5];
+char Volumen_Inflexion_Muestreo[6];
 
 Limpieza limpieza;
+
+// Variables referentes al Volumen
+float Volumen_Inflexion     = 0.0;
+float dif_guardado          = 0.0;
+float volumen_registrado    = 0.0;
 
 //char *msg = "OK\r\n";
 char *msg = "K";
@@ -50,7 +56,7 @@ const char *Buffer_10           = "F";
 const char *Titular_ON          = "G";
 const char *Lectura_PH          = "H";
 const char *Titular_OFF         = "I";
-const char *Titular_END         = "J";
+const char *Titular_END         = "J";  
 const char *Limpieza_ON         = "K";
 const char *Limpieza_OFF        = "L";
 const char *Volumen             = "M";
@@ -151,6 +157,7 @@ void TaskUart(void *taskParmPtr)
             //ESP_LOGI(TAG_UART, "Entrada a AI\n");
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             flag_Agitador = true;
             xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
         }
@@ -159,6 +166,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             flag_Agitador = false;
             xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
         }
@@ -167,6 +175,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             limpieza.Giro_Limpieza = 0;
             limpieza.Habilitador_Limpieza = true;
             xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
@@ -176,6 +185,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             limpieza.Habilitador_Limpieza = false;
             xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
         }
@@ -200,6 +210,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             xQueueSend(S_Calibracion, &Buffer_4, portMAX_DELAY);
         }
 
@@ -207,6 +218,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             xQueueSend(S_Calibracion, &Buffer_7, portMAX_DELAY);
         }
 
@@ -214,6 +226,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             xQueueSend(S_Calibracion, &Buffer_10, portMAX_DELAY);
         }
 
@@ -228,6 +241,7 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
             
             if(len == 2)
             {
@@ -251,17 +265,23 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
+            gpio_set_level(P_Enable_Bomba, 0);
             flag_Titular = true;
         }
 
         if(strcmp(Dato, Titular_OFF) == 0)
         {
             flag_Titular = false;
-            snprintf(Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr), "%.01f", Volumen_Inflexion);
-            uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
+            gpio_set_level(P_Enable_Bomba, 1);
+            //snprintf(Volumen_Inflexion_ptr, strlen(Volumen_Inflexion_ptr), "%.2f", Volumen_Inflexion);
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             uart_write_bytes(UART_NUM, "/", sizeof(char));
-            uart_write_bytes(UART_NUM, Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr));
-            uart_write_bytes(UART_NUM, "/", sizeof(char));
+
+            fin_titulacion();
+            eliminar_volumen_registrado();
+
+            vTaskDelay(pdMS_TO_TICKS(200));
         }
     }
 }
@@ -269,9 +289,33 @@ void TaskUart(void *taskParmPtr)
 void fin_titulacion()
 {
     flag_Titular = false;
-    snprintf(Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr), "%.01f", Volumen_Inflexion);
-    uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
-    uart_write_bytes(UART_NUM, "/", sizeof(char));
-    uart_write_bytes(UART_NUM, Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr));
-    uart_write_bytes(UART_NUM, "/", sizeof(char));
+    gpio_set_level(P_Enable_Bomba, 1);
+    snprintf(Volumen_Inflexion_Muestreo, strlen(Volumen_Inflexion_Muestreo), "%.2f", Volumen_Inflexion);
+    uart_write_bytes(UART_NUM, Titular_END, strlen(Titular_END));
+    uart_write_bytes(UART_NUM, "/", 1);
+    uart_write_bytes(UART_NUM, Volumen_Inflexion_Muestreo, strlen(Volumen_Inflexion_Muestreo));
+    uart_write_bytes(UART_NUM, "/", 1);
+} 
+
+void volumen_suma_1()
+{
+    volumen_registrado += 1.0;
+}
+
+void volumen_suma_01()
+{
+    volumen_registrado += 0.1;
+}
+
+void eliminar_volumen_registrado()
+{
+    volumen_registrado  = 0.0;
+    dif_guardado        = 0.0;
+    Volumen_Inflexion   = 0.0;
+}
+
+void registrar_volumen_inflexion(float *ptr)
+{
+    dif_guardado = *ptr;
+    Volumen_Inflexion = volumen_registrado;
 }
