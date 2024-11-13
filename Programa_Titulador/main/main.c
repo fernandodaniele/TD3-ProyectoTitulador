@@ -137,7 +137,7 @@ void app_main(void)
     wifi_init_softap();
 
     // Iniciar el servidor web
-    //start_webserver();
+    start_webserver();
 
     // Iniciar UART
     init_uart();

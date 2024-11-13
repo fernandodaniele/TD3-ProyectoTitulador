@@ -12,7 +12,6 @@
 /*==================[Prototipos de funciones]======================*/
 
 esp_err_t root_get_handler(httpd_req_t *req);
-httpd_handle_t start_webserver(void);
 esp_err_t toggle_agitador_handler(httpd_req_t *req);
 esp_err_t PH_get_handler(httpd_req_t *req);
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
@@ -178,7 +177,6 @@ httpd_handle_t start_webserver(void) {
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_START) {
         ESP_LOGI(TAG, "Access Point iniciado");
-        start_webserver();
     }
 }
 
@@ -189,7 +187,16 @@ void wifi_init_softap(void) {
     // Crea un loop de evento por defecto 
     esp_event_loop_create_default();
     // Crea AP WIFI predeterminado. En caso de cualquier error de inicio, esta API se cancela.
-    esp_netif_create_default_wifi_ap();
+    esp_netif_t *netif = esp_netif_create_default_wifi_ap();
+
+    // Configurar IP estática
+    esp_netif_ip_info_t ip_info;
+    IP4_ADDR(&ip_info.ip, 192, 168, 4, 1);        // Dirección IP           ESCRIBIR ESTO ---> http://192.168.4.1/
+    IP4_ADDR(&ip_info.gw, 192, 168, 4, 1);        // Puerta de enlace
+    IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0); // Máscara de subred
+    esp_netif_dhcps_stop(netif);                 // Detener DHCP para usar IP fija
+    esp_netif_set_ip_info(netif, &ip_info);
+    esp_netif_dhcps_start(netif);                // Reiniciar DHCP
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     // Inicializa el Wifi del ESP32

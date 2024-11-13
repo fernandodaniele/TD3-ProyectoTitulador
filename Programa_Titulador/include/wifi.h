@@ -11,6 +11,8 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_http_server.h"
+#include "esp_netif.h"
+#include "lwip/ip_addr.h"
 
 /*==================[Definiciones]===================================*/
 
@@ -24,5 +26,6 @@
 
 // void wifi_init();
 void wifi_init_softap();
+httpd_handle_t start_webserver();
 
 #endif
