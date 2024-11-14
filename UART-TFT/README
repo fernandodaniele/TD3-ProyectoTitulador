@@ -1,24 +1,25 @@
 Este programa controla un display MCUFRIEND y se comunica por UART con un ESP32
+Despues de cada comando, el ESP32 envia "/" para indicar que es el fin del comando
 
 Comando enviado     --  Se espera         			 -- Acción
 
-"A" INICIO_CAL 		    "K"                 -- Inicio calibracion
-"B" FIN_CAL    		    "K"                 -- Fin calibracion     -- Calcula la recta de ajuste y guarda los valores en flash
-"C" LECTURA_POTENCIAL   Valor del electrodo -- leer el valor actual del eletrodo * 100
-"D" GRABA_BUFFER4 	    "K"                 -- grabar el valor actual del electrodo en el bufferA - flash
-"E" GRABA_BUFFER7		"K"                 -- grabar el valor actual del electrodo en el bufferB - flash
-"F" GRABA_BUFFER1O		"K"                 -- grabar el valor actual del electrodo en el bufferC - flashF
-"G" INICIO_TIT		    "K"                 -- iniciar proceso de titulacion
+"A" INICIO_CAL 		    "K/"                 -- Inicio calibracion
+"B" FIN_CAL    		    "K/"                 -- Fin calibracion     -- Calcula la recta de ajuste y guarda los valores en flash
+"C" LECTURA_POTENCIAL   Valor del electrodo + "/" -- leer el valor actual del eletrodo * 100
+"D" GRABA_BUFFER4 	    "K/"                 -- grabar el valor actual del electrodo en el bufferA - flash
+"E" GRABA_BUFFER7		"K/"                 -- grabar el valor actual del electrodo en el bufferB - flash
+"F" GRABA_BUFFER1O		"K/"                 -- grabar el valor actual del electrodo en el bufferC - flashF
+"G" INICIO_TIT		    "K/"                 -- iniciar proceso de titulacion
 "H" LECTURA_PH   	     SIN USAR           -- Lee el valor de pH convertido
-"I" CANCELA_TIT		    "K"                 -- Cancela/finaliza de titulacion
-Ningungo, se lee        "J" FIN_TIT		    -- La envia el ESP al Arduino cuando se llega al volumen de corte
-"K" INICIO_LIMPIEZA	    "K"                 -- señal de inicio de limpieza
-"L" FIN_LIMPIEZA		"K"                 -- señal de fin de limpieza
+"I" CANCELA_TIT		    "K/"+"J/"+Valor vol. gastado+"/" -- Finaliza de titulacion
+Ningungo, se lee        "J/"+Valor vol. gastado+"/"		    -- La envia el ESP al Arduino cuando se llega al volumen de corte
+"K" INICIO_LIMPIEZA	    "K/"                 -- señal de inicio de limpieza
+"L" FIN_LIMPIEZA		"K/"                 -- señal de fin de limpieza
 "M" LEE_VOLUMEN 		volumen de corte    -- lee el volumen de corte
-"N" GUARDA_VOLUMEN	    "K"                 -- envia el valor del volumen de corte configurado
+"N" GUARDA_VOLUMEN	    "K/"                 -- envia el valor del volumen de corte configurado
 "O" ESTADO_AGITADOR	      SIN USAR          -- Consulta estado agitador
-"P" HABILITA_AGIT		"K"                 -- señal de agitador on
-"Q" DESHALIBITA_AGIT	"K"                 -- señal de agitador off
+"P" HABILITA_AGIT		"K/"                 -- señal de agitador on
+"Q" DESHALIBITA_AGIT	"K/"                 -- señal de agitador off
 
 Comandos que faltan
 podría ser alguna señal de conexion wifi / bluetooth
