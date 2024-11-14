@@ -346,6 +346,11 @@ void TaskTitulacion(void *taskParmPtr)
     TickType_t xLastWakeTime        = xTaskGetTickCount();
 
     /*==================[Bucle]======================*/
+    /*
+    Hay que buscar el volumen inyectado para cuando dPH/dV es el valor máximo
+    dPH/dVol = (pHactual-pHanterior)/(volumenActual-VolumenAnterior)
+    Cuando dPH/dVol es máximo, hay que guardar como resultado volumenActual
+    */
     while(1)
     {
         //xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);
