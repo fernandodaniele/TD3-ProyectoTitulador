@@ -3,7 +3,7 @@
  * Fecha: 2020/12/21
  *===========================================================================*/
 
-#include "main.h"
+#include <Arduino.h>
 #include "pantallaTFT.h"
 #include "panelTactil.h"
 #include <TouchScreen.h>   //librería para la parte táctil del módulo

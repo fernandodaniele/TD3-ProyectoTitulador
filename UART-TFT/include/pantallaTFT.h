@@ -2,7 +2,8 @@
  * Autor: Fernando Ezequiel Daniele <fernandodaniele1993@gmai.com>
  * Fecha: 2020/12/21
  *===========================================================================*/
- 
+#ifndef PANTALLA_H
+#define PANTALLA_H
  /*=============================================================================
  * Declaración de funciones globales públicas
  *===========================================================================*/
@@ -22,10 +23,10 @@ void pantallaInicial();
  * 
  * @return int 
  *  @li @c 0 No se presionó ningún boton
- *  @li @c 1 Botón de calibrar
- *  @li @c 2 Botón de titular
- *  @li @c 3 Botón de configurar
- *  @li @c 4 Botón de WiFi
+ *  @li @c 1 Botón superior izquierdo
+ *  @li @c 2 Botón superior derecho
+ *  @li @c 3 Botón inferior izquierdo
+ *  @li @c 4 Botón inferior derecho
  */
 int consultaTactil();
 
@@ -39,7 +40,6 @@ void pantallaElegirBuffer();
 /**
  * @brief Muestra la pantalla con el valor actual de ph que será guardado como 
  *        valor para calibrar el instrumento
- * 
  */
 void pantallaCalibrar ();
 
@@ -132,12 +132,32 @@ void pantallaCalibrarB();
 
 void pantallaCalibrarC();
 
+/**
+ * @brief Muestra la pantalla del agitador
+ * 
+ */
 void pantallaAgitador();
 
+/**
+ * @brief Activa o desactiva agitador
+ * 
+ * @return int
+ *  @li @c 1 Activa agitador
+ *  @li @c 2 Desactiva agitador
+ *  @li @c 4 Botón de finalizar
+ */
 int tactilAgitador();
 
-void habilitoAgitador();
+/**
+ * @brief Muestra mensaje en pantalla ON/OFF agitador
+ * 
+ */
+void estadoAgitador(byte);
 
-void deshabilitoAgitador();
-
+/**
+ * @brief Muestra el volumen en el punto final
+ * 
+ */
 void imprimirResultado(float);
+
+#endif

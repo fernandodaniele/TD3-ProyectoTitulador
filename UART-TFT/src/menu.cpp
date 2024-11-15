@@ -4,50 +4,44 @@
  *===========================================================================*/
 #include "uart.h"
 #include "menu.h"
-#include "main.h"
 #include "pantallaTFT.h"
 
 // Variable para el estado actual
 pantalla_t pantalla;
-int opcion =0;
+byte opcion =0;
 float resultado;
 
 // Función para controlar errores de la MEF (Error handler)
-void errorMEF( void )
-{
+void errorMEF( void ){
+   imprimirError();
    iniciarMEF();
 }
 
 // Función para iniciar la MEF
-void iniciarMEF( void )
-{
+void iniciarMEF( void ){
    pantalla = MENU_INICIAL; 
    inicializarTFT();
    pantallaInicial();
 }
 
 // Función para actualizar la MEF
-void actualizarMEF( )
-{
+void actualizarMEF( ){
    switch( pantalla ){
       case MENU_INICIAL:
          opcion = consultaTactil();
     	   switch (opcion){
             case 1:
                pantalla = MENU_ELEGIR_BUFFER;
-               iniciarCalibracion();
+               if(iniciarCalibracion()==0){   //envia señal para iniciar la calibración
+                  imprimirError(); //Si da error, reinicia MEF
+               }
                pantallaElegirBuffer();
                break;
             case 2:
                pantalla = MENU_TITULACION;
                pantallaMedir();
-               if(iniciarTitulacion()){   //envia señal para iniciar la titulacion
-                  //Serial.println("Se inicio titulacion");
-               }
-               else
-               {
-                  //acá ver que hacer en caso de error
-                  //Serial.println("Error en el inicio de titulacion");
+               if(iniciarTitulacion()==0){   //envia señal para iniciar la titulacion
+                  imprimirError(); //Si da error, reinicia MEF
                }
                break;
             case 3:
@@ -81,7 +75,9 @@ void actualizarMEF( )
                break;
             case 4:
                pantalla = MENU_INICIAL;
-               finalizarCalibracion();
+               if(finalizarCalibracion()==0){
+                  imprimirError();
+               }
                pantallaInicial();
                break;
             default:
@@ -93,7 +89,9 @@ void actualizarMEF( )
       case MENU_CALIBRAR_A:
          opcion = tactilCalibrar();
     	   if(opcion==3){
-            calibrarBufferA();
+            if(calibrarBufferA()==0){
+               imprimirError();
+            }
             pantalla = MENU_ELEGIR_BUFFER;
             pantallaElegirBuffer();
     	   }
@@ -106,7 +104,9 @@ void actualizarMEF( )
       case MENU_CALIBRAR_B:
          opcion =  tactilCalibrar();
     	   if(opcion==3){
-            calibrarBufferB();
+            if(calibrarBufferB()==0){
+               imprimirError();
+            }
             pantalla = MENU_ELEGIR_BUFFER;
             pantallaElegirBuffer();
     	   }
@@ -119,7 +119,9 @@ void actualizarMEF( )
       case MENU_CALIBRAR_C:
          opcion =  tactilCalibrar();
     	   if(opcion==3){
-            calibrarBufferC();
+            if(calibrarBufferC()==0){
+               imprimirError();
+            }
             pantalla = MENU_ELEGIR_BUFFER;
             pantallaElegirBuffer();
     	   }
@@ -134,27 +136,18 @@ void actualizarMEF( )
          
     	   if(opcion==4){
             if(cancelarTitulacion()){
-              // Serial.println("Se finalizo titulacion");
-              //delay(3000);
-              if(estadoTitulacion(&resultado))
-               {
+              if(estadoTitulacion(&resultado)){
                  imprimirResultado(resultado);
-                 pantalla = MENU_INICIAL;
-                 pantallaInicial();
                }
             }
-            else
-            {
-              // Serial.println("Error en finalizar titulacion");
+            else{
               imprimirError();
             }
             pantalla = MENU_INICIAL;
             pantallaInicial();
     	   }
          //Se lee el puerto serie para ver si finalizó la titulación
-         
-         else if(estadoTitulacion(&resultado))
-         {
+         else if(estadoTitulacion(&resultado)) {
             imprimirResultado(resultado);
             pantalla = MENU_INICIAL;
             pantallaInicial();
@@ -171,13 +164,6 @@ void actualizarMEF( )
             case 2:
                pantalla = MENU_LIMPIEZA;
                pantallaLimpieza();
-               if(iniciarLimpieza()){
-                 // Serial.println("Se inicio limpieza");
-               }
-               else
-               {
-                 // Serial.println("Error en inicio limpieza");
-               }
                break;
             case 3:
                pantalla = MENU_AGITADOR;
@@ -203,53 +189,47 @@ void actualizarMEF( )
     	   break;
 
       case MENU_LIMPIEZA:
-         opcion = tactilLimpieza();
+         opcion = tactilLimpieza();     
     	   if(opcion==4){
             pantalla = MENU_AJUSTES;
-            if(finalizarLimpieza()){
-              // Serial.println("Se finalizo limpieza");
-            }
-            else
-            {
-               //Serial.println("Error en finalizar limpieza");
-            }
             pantallaAjustes();
     	   }
+         else if(opcion==5){
+            if(iniciarLimpieza()==0){
+               imprimirError();
+            }
+         }
+         else if(opcion==6){
+            if(finalizarLimpieza()==0){
+               imprimirError();
+            }
+         }
     	   break;
 
       case MENU_AGITADOR:
          opcion = tactilAgitador();
-         switch (opcion)
+         if (opcion==0)
          {
-         case 1:
-               if(habilitarAgitador()){
-                  habilitoAgitador();
-               }
-               else
-               {
-                  imprimirError();
-               }
-            pantalla = MENU_AJUSTES;
-            pantallaAjustes();
-            break;
-         case 2:
-               if(deshabilitarAgitador()){
-                 deshabilitoAgitador();
-               }
-               else
-               {
-                  imprimirError();
-               }
-            pantalla = MENU_AJUSTES;
-            pantallaAjustes();
-            break;
-         case 4:
-            pantalla = MENU_AJUSTES;
-            pantallaAjustes();
-            break;
-         default:
             break;
          }
+         else if(opcion==1){
+            if(habilitarAgitador()){
+               estadoAgitador(1);
+            }
+            else{
+               iniciarMEF();
+            }
+         }
+         else if(opcion==2){
+            if(deshabilitarAgitador()){
+               estadoAgitador(0);
+            }
+            else{
+               iniciarMEF();
+            }
+         }
+         pantalla = MENU_AJUSTES;
+         pantallaAjustes();
     	   break;
 
       case MENU_CONEXION:

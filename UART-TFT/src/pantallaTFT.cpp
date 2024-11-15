@@ -8,7 +8,6 @@
  *===========================================================================*/
 #include <Adafruit_GFX.h>  //librería gráfica para TFT
 #include <MCUFRIEND_kbv.h> //librería especifica del módulo
-#include "main.h"
 #include "pantallaTFT.h"
 #include "panelTactil.h"
 #include "uart.h"
@@ -21,7 +20,7 @@
 #define RED     0xF800
 #define GREEN   0x07E0
 #define CYAN    0x07FF
-#define MAGENTA 0xF81F
+//#define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
@@ -30,10 +29,12 @@
 #define TITULAR_BTN     "TITULAR"
 #define CONFIGURAR_BTN  "AJUSTES"
 #define WIFI_BTN        "WIFI"
-#define B1_BTN          "BUFFER 4"
-#define B2_BTN          "BUFFER 7"
-#define B3_BTN          "BUFFER 10"
-#define REGRESAR_BTN    "REGRESAR"
+#define B1_BTN          "PH 4"
+#define B2_BTN          "PH 7"
+#define B3_BTN          "PH 10"
+#define REGRESAR_BTN    "VOLVER"
+#define FINALIZAR       "FIN"
+#define GUARDAR         "GUARDAR"
 #define T_INC_DEC        70
 #define RETARDO_PANTALLA 1000
 #define RETARDO_PIXEL    5000
@@ -42,13 +43,13 @@
  *===========================================================================*/
 MCUFRIEND_kbv tft;        //Objeto pantalla gráfica
 
-Adafruit_GFX_Button unoBtn, dosBtn, tresBtn, cuatroBtn;
-Adafruit_GFX_Button incBtn, decBtn;
+Adafruit_GFX_Button unoBtn, dosBtn, tresBtn, cuatroBtn, cincoBtn, seisBtn;
 
 char bufferA[6], bufferB[6], bufferC[6]; //variables de calibración en bits formato decimal (0-0V 2047-3.3V)
-float bufferAPH = 4.00, bufferBPH = 7.00, bufferCPH = 10.00; //variables de calibración en ph
+float bufferAPH = 4.0, bufferBPH = 7.0, bufferCPH = 10.0; //variables de calibración en ph
 int pixel_x, pixel_y;   
 int volumenCorte = 10;
+int volumenInyectar = 10;
 
 uint16_t gX, gY; //variables para la curva de titulacion
 float ph;
@@ -66,28 +67,36 @@ unsigned long T;
   tft.setRotation(3); //horizontal 1 o 3
 }
 
-//Muestra la pantalla de inicio
-void pantallaInicial(){
+void pantallaNegra(){
   tft.fillScreen(BLACK);  //borra cualquier imagen previa
+  tft.drawRect(8, 8, 312, 232, WHITE); //(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t color);
+}
 
-  //Se inician y muestran los botones
-                        // (gfx, x, y, w, h, outline, fill, textcolor, nombre, textsize)
-  unoBtn.initButton(&tft,  80, 150, 140, 40, WHITE, CYAN, BLACK, CALIBRAR_BTN, TXT_BTN_SIZE); 
-  dosBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, TITULAR_BTN, TXT_BTN_SIZE);
-  tresBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, CONFIGURAR_BTN, TXT_BTN_SIZE);
-  cuatroBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, WIFI_BTN, TXT_BTN_SIZE);
+void dibujarBotones(char *a, char *b, char *c, char *d){
+  tft.setTextColor(WHITE);
+                // (gfx, x, y, w, h, outline, fill, textcolor, nombre, textsize)
+  unoBtn.initButton(&tft,  84, 150, 140, 40, WHITE, CYAN, BLACK, a, TXT_BTN_SIZE); 
+  dosBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, b, TXT_BTN_SIZE);
+  tresBtn.initButton(&tft,  84, 210, 140, 40, WHITE, CYAN, BLACK, c, TXT_BTN_SIZE);
+  cuatroBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, d, TXT_BTN_SIZE);
   unoBtn.drawButton(false);//dibuja boton. false es para intercambiar colores
   dosBtn.drawButton(false);
   tresBtn.drawButton(false);
   cuatroBtn.drawButton(false);
+}
 
+//Muestra la pantalla de inicio
+void pantallaInicial(){
+  pantallaNegra();  //borra cualquier imagen previa
+
+  dibujarBotones(CALIBRAR_BTN, TITULAR_BTN, CONFIGURAR_BTN, WIFI_BTN); //Se inician y muestran los botones
+  tft.drawRect(8, 8, 312, 110, WHITE);
   //Se dibuja un rectangulo para escribir dentro
-  tft.drawRect(10, 10, 300, 110, WHITE); //(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h, uint16_t color);
-  tft.setCursor(15,13);
+  tft.setCursor(100,13);
   tft.setTextColor(WHITE);
-  tft.print("...... TITULADOR .......");
-  tft.setCursor(15,38);
-  tft.print("...... AUTOMATICO ......");
+  tft.print("TITULADOR");
+  tft.setCursor(100,38);
+  tft.print("AUTOMATICO");
   tft.setCursor(15,61);
   tft.print("Desarrollado por");
   tft.setCursor(15,86);
@@ -127,56 +136,51 @@ int consultaTactil(){
 //cada uno de ellos por separado para realizar la calibración
 void pantallaElegirBuffer(){
     //Limpia la pantalla y muestra el valor actual de los buffers
-    tft.fillScreen(BLACK);
+    pantallaNegra();
     tft.setTextColor(WHITE);
     tft.setCursor(10,20);
-    tft.print("1. Coloque el electrodo\n   en el buffer\n");
-    tft.print("2. Seleccione la opcion\n   correspondiente al\n   buffer utilizado");
+    tft.println(" Coloque el electrodo\n  en el buffer\n");
+    tft.print("  Seleccione la opcion\n  correspondiente al\n   buffer utilizado");
 
     //Dibuja los botones correspondientes a esta pantalla
-    unoBtn.initButton(&tft,  80, 150, 140, 40, WHITE, CYAN, BLACK, B1_BTN, TXT_BTN_SIZE);
-    dosBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, B2_BTN, TXT_BTN_SIZE);
-    tresBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, B3_BTN, TXT_BTN_SIZE);
-    cuatroBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, REGRESAR_BTN, TXT_BTN_SIZE);
-    unoBtn.drawButton(false);
-    dosBtn.drawButton(false);
-    tresBtn.drawButton(false);
-    cuatroBtn.drawButton(false);
+    dibujarBotones(B1_BTN, B2_BTN, B3_BTN, REGRESAR_BTN); //Se inician y muestran los botones
 }
 
 //Muestra la pantalla con el valor actual de ph que será guardado como valor para calibrar el instrumento
 void pantallaCalibrar (){
-  tft.fillScreen(BLACK);
-  dosBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, "CANCELAR", TXT_BTN_SIZE);
-  unoBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, "GUARDAR", TXT_BTN_SIZE);
+  pantallaNegra();
+  dosBtn.initButton(&tft,  84, 210, 140, 40, WHITE, CYAN, BLACK, REGRESAR_BTN, TXT_BTN_SIZE);
+  unoBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, GUARDAR, TXT_BTN_SIZE);
   dosBtn.drawButton(false);
   unoBtn.drawButton(false);
   tft.setTextColor(WHITE);
   tft.setCursor(10,10);
-  tft.println("Realice la medicion");
-  tft.println("Presione guardar cuando el");
-  tft.println("valor en mV se estabilice");
+  tft.println(" Realice la medicion\n");
+  tft.println("  Presione guardar cuando\n");
+  tft.println("  el valor se estabilice");
 }
 
 //Consulta si se presionó algún botón en la pantalla de elección de buffer
 int tactilCalibrar(){
   float tempMV = ph;
   //Acá tengo que leer el valor del electrodo desde el ESP
-  if(leerPotencial(&ph)==0){
-      imprimirError();
-      return 4;
-  }
-  else
-  {
-  tft.setCursor(100,110);
-  tft.setTextColor(BLACK);
-  tft.print(tempMV);
-  tft.print(" pH");
-  //Acá tengo que mostrar en pantalla ese valor leido
-  tft.setCursor(100,110);
-  tft.setTextColor(WHITE);
-  tft.print(ph);
-  tft.print(" pH");
+  if(millis()>T+500){
+    if(leerPotencial(&ph)==0){
+        imprimirError();
+        return 4;
+    }
+    else
+    {
+    tft.setCursor(100,110);
+    tft.setTextColor(BLACK);
+    tft.print(tempMV);
+    tft.print(" pH");
+    //Acá tengo que mostrar en pantalla ese valor leido
+    tft.setCursor(100,110);
+    tft.setTextColor(WHITE);
+    tft.print(ph);
+    tft.print(" pH");
+    }
   }
 
   bool  ab = Touch_getXY(&pixel_x, &pixel_y);
@@ -197,31 +201,31 @@ int tactilCalibrar(){
 //Muestra la pantalla con la curva de titulación y el valor actual de pH
 void pantallaMedir(){
  
-  tft.fillScreen(BLACK);
-  unoBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, "FINALIZAR", TXT_BTN_SIZE);
+  pantallaNegra(); 
+  unoBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, FINALIZAR, TXT_BTN_SIZE);
   unoBtn.drawButton(false);
 
   //Dibuja el grafico
-  tft.drawLine(20, 30, 20, 160, WHITE);
-  tft.drawLine(20, 160, 310, 160, WHITE);
+  tft.drawLine(25, 30, 25, 160, WHITE);
+  tft.drawLine(25, 160, 310, 160, WHITE);
   tft.setTextColor(WHITE);
   tft.setTextSize(1); 
-  tft.setCursor(5,5);
+  tft.setCursor(10,15);
   tft.print("pH");
-  tft.setCursor(5,30);
+  tft.setCursor(10,30);
   tft.print("14");
-  tft.setCursor(5,91);
+  tft.setCursor(10,91);
   tft.print(" 7");
-  tft.setCursor(5,153);
+  tft.setCursor(10,153);
   tft.print(" 0");
-  tft.setCursor(20,163);
+  tft.setCursor(25,163);
   tft.print("0");
   tft.setCursor(280,163);
-  tft.print("tiempo");
+  tft.print("t");
   tft.setTextSize(2);
 
   T= millis();
-  gX = 20;
+  gX = 25;
 }
 
 //Actualiza el grafico y consulta si se presionó el boton de finalizar
@@ -239,11 +243,11 @@ int tactilMedir(){
     gY =(ph * (30 - 160)/14+ 160);
     tft.drawPixel(gX,gY,YELLOW);
 
-    tft.setCursor(20,200);
+    tft.setCursor(25,200);
     tft.setTextColor(BLACK);
     tft.print(tmpPH);
     tft.print(" pH");
-    tft.setCursor(20,200);
+    tft.setCursor(25,200);
     tft.setTextColor(WHITE);
     tft.print(ph);
     tft.print(" pH");
@@ -266,48 +270,34 @@ int tactilMedir(){
 //Muestra la pantalla con la opciones para configurar los buffers a utilizar, el volumen de corte y para ejecutar la limpieza de la bomba
 void pantallaAjustes()
 {
-    tft.fillScreen(BLACK);
-    tft.setTextColor(WHITE);
-    tft.setCursor(10,20); 
+    pantallaNegra();
+    
+    tft.setCursor(10,20);
+    tft.setTextColor(WHITE); 
     tft.print ("Seleccione una opcion");
-
-    unoBtn.initButton(&tft,  80, 150, 140, 40, WHITE, CYAN, BLACK, "VOLUMEN", TXT_BTN_SIZE); 
-    dosBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, "LIMPIEZA", TXT_BTN_SIZE);
-    tresBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, "AGITADOR", TXT_BTN_SIZE);
-    cuatroBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, "REGRESAR", TXT_BTN_SIZE);
-    unoBtn.drawButton(false);//dibuja boton. false es para intercambiar colores
-    dosBtn.drawButton(false);
-    tresBtn.drawButton(false);
-    cuatroBtn.drawButton(false);
+    dibujarBotones("VOLUMEN", "LIMPIEZA", "AGITADOR", REGRESAR_BTN);
 }
 
 //Muestra la pantalla que permite ajustar el valor del volumen de corte
 void pantallaVolumenCorte()
 {
-  tft.fillScreen(BLACK);
+  pantallaNegra();
+  
   tft.setTextColor(WHITE);
   tft.setCursor(10,15);
-  tft.print("Configurar el volumen de corte");
+  tft.print("Configure el volumen\n  de corte");
   tft.setCursor(10,65);
-  if(leerVolumenCorte(&volumenCorte) == 0)
-  {
-    tft.print("Error");
+  if(leerVolumenCorte(&volumenCorte) == 0)  {
+    tft.print("E");
   }
-  else
-  {
-  tft.print("Volumen = ");
+  else  {
+  tft.print(" Volumen:");
   tft.setCursor(125,65);
   tft.print(volumenCorte);
+  tft.print(" mL");
   }
 
-  unoBtn.initButton(&tft,  80, 150, 140, 40, WHITE, CYAN, BLACK, "+", TXT_BTN_SIZE); 
-  dosBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, "-", TXT_BTN_SIZE);
-  tresBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, "GUARDAR", TXT_BTN_SIZE);
-  cuatroBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK, "REGRESAR", TXT_BTN_SIZE);
-  unoBtn.drawButton(false);//dibuja boton. false es para intercambiar colores
-  dosBtn.drawButton(false);
-  tresBtn.drawButton(false);
-  cuatroBtn.drawButton(false);
+  dibujarBotones("+", "-", GUARDAR, REGRESAR_BTN);
  }
 
 //Permite configurar el volumen de corte y consulta si se presionó el boton de guardar
@@ -342,8 +332,7 @@ int  tactilVolumenCorte()
     imprimirGuardando();
     char volumenStr [6];
     sprintf(volumenStr, "%d", volumenCorte);
-    if(guardarVolumenCorte(volumenStr)==0)
-    {
+    if(guardarVolumenCorte(volumenStr)==0){
       imprimirError();
     }
     return 4;
@@ -360,24 +349,77 @@ int  tactilVolumenCorte()
 //Muestra la pantalla de limpieza de la bomba
 void pantallaLimpieza ()
 {
-  tft.fillScreen(BLACK);
-  unoBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, "FINALIZAR", TXT_BTN_SIZE);
-  unoBtn.drawButton(false);
-
+  pantallaNegra();
   tft.setTextColor(WHITE);
-  tft.setCursor(10,10);
-  tft.println("Realizando limpieza");
+  tft.setCursor(10,15);
+  tft.print("Volumen a inyectar: ");
+  
+  unoBtn.initButton(&tft,  84, 90, 140, 40, WHITE, CYAN, BLACK, "+", TXT_BTN_SIZE); 
+  dosBtn.initButton(&tft, 240, 90, 140, 40, WHITE, CYAN, BLACK, "-", TXT_BTN_SIZE);
+  tresBtn.initButton(&tft,  84, 150, 140, 40, WHITE, CYAN, BLACK, "INYECTAR", TXT_BTN_SIZE);
+  cuatroBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, REGRESAR_BTN, TXT_BTN_SIZE);
+  cincoBtn.initButton(&tft,  84, 210, 140, 40, WHITE, CYAN, BLACK,"LIMPIAR", TXT_BTN_SIZE);
+  seisBtn.initButton(&tft, 240, 210, 140, 40, WHITE, CYAN, BLACK,FINALIZAR, TXT_BTN_SIZE);
+  unoBtn.drawButton(false);//dibuja boton. false es para intercambiar colores
+  dosBtn.drawButton(false);
+  tresBtn.drawButton(false);
+  cuatroBtn.drawButton(false);
+  cincoBtn.drawButton(false);
+  seisBtn.drawButton(false);
 }
 
-//Consulta si se presionó el boton de finalizar
-int tactilLimpieza()
+//Permite realizar limpieza
+int  tactilLimpieza()
 {
   bool  presionado = Touch_getXY(&pixel_x, &pixel_y);
   unoBtn.press(presionado && unoBtn.contains(pixel_x, pixel_y));
-
-  if (unoBtn.justReleased()){ 
-    imprimirFinalizando();
+  dosBtn.press(presionado && dosBtn.contains(pixel_x, pixel_y));
+  tresBtn.press(presionado && tresBtn.contains(pixel_x, pixel_y));
+  cuatroBtn.press(presionado && cuatroBtn.contains(pixel_x, pixel_y));
+  cincoBtn.press(presionado && cincoBtn.contains(pixel_x, pixel_y));
+  seisBtn.press(presionado && seisBtn.contains(pixel_x, pixel_y));  
+  if (unoBtn.justReleased()){
+    delay(T_INC_DEC); 
+    tft.setCursor(145,45);
+    tft.setTextColor(BLACK);
+    tft.print(volumenInyectar);
+    tft.print(" mL");
+    volumenInyectar = volumenInyectar + 1;
+    tft.setTextColor(WHITE);
+    tft.setCursor(145,45);
+    tft.print(volumenInyectar);
+    tft.print(" mL");
+  }
+  else if (dosBtn.justReleased()){
+    delay(T_INC_DEC);
+    tft.setCursor(145,45);
+    tft.setTextColor(BLACK);
+    tft.print(volumenInyectar);
+    tft.print(" mL");
+    volumenInyectar = volumenInyectar - 1;
+    tft.setTextColor(WHITE);
+    tft.setCursor(145,45);
+    tft.print(volumenInyectar);
+    tft.print(" mL");
+  }
+  else if (tresBtn.justReleased()){
+    char volumenStr [6];
+    sprintf(volumenStr, "%d", volumenInyectar);
+    if(InyectarVolumen(volumenStr)==0)
+    {
+      imprimirError();
+      return 4;
+    }
+    return 3;
+  }
+  else if (cuatroBtn.justReleased()){
     return 4;
+  }
+  else if (cincoBtn.justReleased()){
+    return 5;
+  }
+  else if (seisBtn.justReleased()){
+    return 6;
   }
   else{
     return 0;
@@ -387,13 +429,17 @@ int tactilLimpieza()
 //Muestra la pantalla con los datos para conectarse al WiFi
 void pantallaWIFI ()
 {
-  tft.fillScreen(BLACK);
-  unoBtn.initButton(&tft,  80, 210, 140, 40, WHITE, CYAN, BLACK, "FINALIZAR", 2); // (gfx, x, y, w, h, outline, fill, textcolor, "Calibracion", textsize)
+  pantallaNegra();
+  
+  unoBtn.initButton(&tft,  240, 210, 140, 40, WHITE, CYAN, BLACK, REGRESAR_BTN, 2); // (gfx, x, y, w, h, outline, fill, textcolor, "Calibracion", textsize)
   unoBtn.drawButton(false);
-
   tft.setTextColor(WHITE);
-  tft.setCursor(10,10);
-  tft.println("Pantalla wifi");
+  tft.setCursor(25,20);
+  tft.println("Red: ESP32_AP");
+  tft.setCursor(25,65);
+  tft.println("Clave: 12345678");
+  tft.setCursor(25,110);
+  tft.println("Web: 192.168.4.1/");
 }
 
 //Consulta si se presionó el boton de finalizar
@@ -401,12 +447,10 @@ int tactilWIFI()
 {
   bool  presionado = Touch_getXY(&pixel_x, &pixel_y);
   unoBtn.press(presionado && unoBtn.contains(pixel_x, pixel_y));
-
   if (unoBtn.justReleased()){
     return 4;
   }
   else{
-    
     return 0;
   }
 }
@@ -414,25 +458,25 @@ int tactilWIFI()
 void imprimirFinalizando()
 {
   tft.setCursor(15,100);
+  pantallaNegra();
   tft.setTextColor(WHITE);
-  tft.fillScreen(BLACK);
   tft.print("Finalizando...");
   delay(RETARDO_PANTALLA);
 }
 
 void imprimirError(){
   tft.setCursor(15,100);
+  pantallaNegra();
   tft.setTextColor(WHITE);
-  tft.fillScreen(BLACK);
-  tft.print("Error");
+  tft.print("ERROR");
   delay(RETARDO_PANTALLA);
 }
 
 void imprimirGuardando()
 {
+  pantallaNegra();
   tft.setCursor(15,100);
   tft.setTextColor(WHITE);
-  tft.fillScreen(BLACK);
   tft.print("Guardando...");
   delay(RETARDO_PANTALLA);
 }
@@ -440,11 +484,12 @@ void imprimirGuardando()
 void imprimirResultado(float resultado)
 {
   tft.setCursor(15,100);
+  
+  pantallaNegra();
   tft.setTextColor(WHITE);
-  tft.fillScreen(BLACK);
   tft.print("Volumen = ");
   tft.print(resultado);
-  tft.print(" [mL] ");
+  tft.print(" mL ");
   delay(RETARDO_PANTALLA*5);
 }
 
@@ -452,12 +497,10 @@ void pantallaCalibrarA()
 {
   imprimirGuardando();
   //Cuando se de guardar hay que enviar un señal para que se guarde ese valor
-  if(calibrarBufferA()==0)
-  {
+  if(calibrarBufferA()==0)  {
      imprimirError();
   }
-  else
-  {
+  else{
       //leer valor guardado y mostrar en pantalla
   }
 }
@@ -466,12 +509,10 @@ void pantallaCalibrarB()
 {
   imprimirGuardando();
   //Cuando se de guardar hay que enviar un señal para que se guarde ese valor
-  if(calibrarBufferB()==0)
-  {
+  if(calibrarBufferB()==0){
      imprimirError();
   }
-  else
-  {
+  else{
       //leer valor guardado y mostrar en pantalla
   }
 }
@@ -480,28 +521,21 @@ void pantallaCalibrarC()
 {
   imprimirGuardando();
   //Cuando se de guardar hay que enviar un señal para que se guarde ese valor
-  if(calibrarBufferC()==0)
-  {
+  if(calibrarBufferC()==0){
     imprimirError();
   }
-  else
-  {
+  else{
       //leer valor guardado y mostrar en pantalla
   }
 }
 
 void pantallaAgitador()
 {
-    tft.fillScreen(BLACK);
+    pantallaNegra();
     tft.setTextColor(WHITE);
     tft.setCursor(10,20); 
-    tft.println ("Seleccione una opcion");
-    unoBtn.initButton(&tft,  80, 150, 140, 40, WHITE, CYAN, BLACK, "ON", TXT_BTN_SIZE); // (gfx, x, y, w, h, outline, fill, textcolor, "Calibracion", textsize)
-    dosBtn.initButton(&tft, 240, 150, 140, 40, WHITE, CYAN, BLACK, "OFF", TXT_BTN_SIZE);
-    cuatroBtn.initButton(&tft, 160, 210, 300, 40, WHITE, CYAN, BLACK, "REGRESAR", TXT_BTN_SIZE);
-    unoBtn.drawButton(false);
-    dosBtn.drawButton(false);
-    cuatroBtn.drawButton(false);
+    tft.println ("Seleccione una opcion.");
+    dibujarBotones("ON", "OFF", " ", REGRESAR_BTN);
 }
 
 int tactilAgitador(){
@@ -524,20 +558,17 @@ int tactilAgitador(){
   
 }
 
-void habilitoAgitador()
+void estadoAgitador(byte a)
 {
-    tft.fillScreen(BLACK);
+    pantallaNegra();
     tft.setTextColor(WHITE);
-    tft.setCursor(10,20); 
-    tft.println ("Agitador habilitado");
-    delay(RETARDO_PANTALLA);
-}
-
-void deshabilitoAgitador()
-{
-    tft.fillScreen(BLACK);
-    tft.setTextColor(WHITE);
-    tft.setCursor(10,20); 
-    tft.print("Agitador deshabilitado");
+    tft.setCursor(20,20); 
+    tft.print ("Agitador ");
+    if(a){
+      tft.print("ON");
+    }
+    else{
+      tft.print("OFF");
+    }
     delay(RETARDO_PANTALLA);
 }
