@@ -67,9 +67,9 @@ Limpieza limpieza_main;
 
 float Volumen_Inflexion;
 float Vout_PH_Ant = 0.0;
-float *ptr_Vout_PH_Ant = &Vout_PH_Ant;
 float dif = 0.0;
-float *ptr_dif = &dif;
+float dif_deriv = 0.0;
+float *ptr_dif_deriv = &dif_deriv;
 
 extern float Volumen_Inflexion;
 extern float Vout_PH;
@@ -78,6 +78,7 @@ extern bool flag_Titular;
 
 extern float dif_guardado;
 extern float volumen_registrado;
+extern float volumen_registrado_ant;
 
 /*==================[Handles]==============================*/
 
@@ -86,7 +87,7 @@ QueueHandle_t S_Agitador        = NULL;
 QueueHandle_t S_Limpieza        = NULL;
 QueueHandle_t S_Calibracion     = NULL;
 QueueHandle_t S_Titulacion      = NULL;
-QueueHandle_t S_Elim_Volumen    = NULL;
+QueueHandle_t S_Inyeccion       = NULL;
 nvs_handle_t app_nvs_handle;
 
 /*==================[Prototipos de funciones]======================*/
@@ -95,6 +96,7 @@ void TaskAgitador(void *taskParmPtr);
 void TaskLimpieza(void *taskParmPtr); 
 void TaskCalibracion(void *taskParmPtr);  
 void TaskTitulacion(void *taskParmPtr);  
+void TaskInyeccion(void *taskParmPtr);  
 static void example_ledc_init(void); 
 
 /*==================[Main]======================*/
@@ -107,6 +109,7 @@ void app_main(void)
     S_Limpieza      = xQueueCreate(1, sizeof(limpieza_main));
     S_Calibracion   = xQueueCreate(1, sizeof(char*));
     S_Titulacion    = xQueueCreate(1, sizeof(bool));
+    S_Inyeccion     = xQueueCreate(1, sizeof(limpieza_main));
 
     esp_rom_gpio_pad_select_gpio(P_Enable_Bomba);
     gpio_set_direction(P_Enable_Bomba, GPIO_MODE_OUTPUT);
@@ -213,6 +216,23 @@ void app_main(void)
         while(1);    // Si no pudo crear la tarea queda en un bucle infinito
     }
 
+    BaseType_t err5 = xTaskCreatePinnedToCore(
+        TaskInyeccion,                    // Funcion de la tarea a ejecutar
+        "TaskInyeccion",   	            // Nombre de la tarea como String amigable para el usuario
+        configMINIMAL_STACK_SIZE*2, 		// Cantidad de stack de la tarea
+        NULL,                          	    // Parametros de tarea
+        tskIDLE_PRIORITY+1,         	    // Prioridad de la tarea -> Queremos que este un nivel encima de IDLE
+        NULL,                          		// Puntero a la tarea creada en el sistema
+        PROCESADORA                         // Numero de procesador
+    );
+
+    // Gestion de errores
+    if(err5 == pdFAIL)
+    {
+        ESP_LOGI(TAG_MAIN, "Error al crear la tarea.");
+        while(1);    // Si no pudo crear la tarea queda en un bucle infinito
+    }
+
 }
 
 /*==================[Implementacion de la tarea]======================*/
@@ -278,6 +298,30 @@ void TaskLimpieza(void *taskParmPtr)
         //vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
         //ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
         //ESP_LOGI(TAG_MAIN, "Led Apagado");
+    } 
+}
+
+void TaskInyeccion(void *taskParmPtr)
+{
+    // Se inyecta  una cantidad de volumen de liquido ingresada por el operario
+
+    /*==================[Configuraciones]======================*/
+
+    /*==================[Bucle]======================*/
+    while(1)
+    {
+        xQueueReceive(S_Inyeccion, &limpieza_main, portMAX_DELAY);
+
+        TickType_t xPeriodicity     = pdMS_TO_TICKS(T_TITULACION_MS_1ml*limpieza_main.Volumen_Inyeccion); 
+
+        gpio_set_level(P_Giro, limpieza_main.Giro_Limpieza);
+
+        TickType_t xLastWakeTime = xTaskGetTickCount();
+        ESP_LOGI(TAG_MAIN, "Bomba Encendida");
+        ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+        vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
+        ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+        ESP_LOGI(TAG_MAIN, "Bomba Apagada");
     } 
 }
 
@@ -387,12 +431,16 @@ void TaskTitulacion(void *taskParmPtr)
             // Cálculo de la diferencia de PH 
             // Lo hacemos aca ya que en el proceso del ADC se esta midiendo constantemente, por lo tanto la dif siempre era muy pequeña
             dif = sqrt(pow((Vout_PH - Vout_PH_Ant), 2));
-            Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
+            // Calculo de la derivada 
+            dif_deriv = dif / (sqrt(pow((volumen_registrado - volumen_registrado_ant), 2)));
+
+            // Guardamos el valor anterior de PH
+            Vout_PH_Ant = Vout_PH;
 
             // Calculo de volumen de corte 
-            if(dif > dif_guardado)
+            if(dif_deriv > dif_guardado)
             {
-                registrar_volumen_inflexion(ptr_dif);
+                registrar_volumen_inflexion(ptr_dif_deriv);
             }
 
             ESP_LOGI(TAG_MAIN, "\nDif -> %.02f", dif);

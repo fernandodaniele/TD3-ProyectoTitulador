@@ -32,6 +32,8 @@ typedef struct
 {
     bool Habilitador_Limpieza;
     bool Giro_Limpieza;
+    char Volumen_Inyeccion_str[4];
+    int Volumen_Inyeccion;
 }Limpieza;
 
 /*==================[Prototipos de funciones]======================*/

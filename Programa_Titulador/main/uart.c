@@ -40,9 +40,10 @@ char Volumen_Inflexion_Muestreo[6];
 Limpieza limpieza;
 
 // Variables referentes al Volumen
-float Volumen_Inflexion     = 0.0;
-float dif_guardado          = 0.0;
-float volumen_registrado    = 0.0;
+float Volumen_Inflexion         = 0.0;
+float dif_guardado              = 0.0;
+float volumen_registrado        = 0.0;
+float volumen_registrado_ant    = 0.0;
 
 //char *msg = "OK\r\n";
 char *msg = "K";
@@ -64,6 +65,7 @@ const char *Guardar_Volumen     = "N";
 const char *Estado_Agitador     = "O";
 const char *Agitador_ON         = "P";
 const char *Agitador_OFF        = "Q";
+const char *Volumen_Inyeccion   = "R";
 
 // int largo, largo2;
 
@@ -72,6 +74,7 @@ extern QueueHandle_t S_Agitador;
 extern QueueHandle_t S_Limpieza;
 extern QueueHandle_t S_Calibracion;
 extern QueueHandle_t S_Titulacion;
+extern QueueHandle_t S_Inyeccion;
 
 /*==================[Implementaciones]=================================*/
 
@@ -133,9 +136,20 @@ void TaskUart(void *taskParmPtr)
 
         if(len > 1)
         {
-            for(int i = 0; i < len - 1; i++)
+            if(strcmp(Dato[0], Guardar_Volumen) == 0)
             {
-                Volumen_Anterior[i] = Dato[i+1];
+                for(int i = 0; i < len - 1; i++)
+                {
+                    Volumen_Anterior[i] = Dato[i+1];
+                } 
+            }  
+            
+            if(strcmp(Dato[0], Volumen_Inyeccion) == 0)
+            {
+                for(int i = 0; i < len - 1; i++)
+                {
+                    limpieza.Volumen_Inyeccion_str[i] = Dato[i+1];
+                } 
             }
         }
 
@@ -279,6 +293,31 @@ void TaskUart(void *taskParmPtr)
             Volumen_Comp = atoi(Volumen_Anterior);
         }
 
+        else if(strcmp(Dato, Volumen_Inyeccion) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
+            
+            if(len == 2)
+            {
+                limpieza.Volumen_Inyeccion_str[len-1] = '\0';
+            }
+            else if(len == 3)
+            {
+                limpieza.Volumen_Inyeccion_str[len-1] = '\0';
+            }
+            else if(len == 4)
+            {
+                limpieza.Volumen_Inyeccion_str[len-1] = '\0';
+            }
+            
+            //Volumen_Anterior[CARACTERES] = '\0'; 
+            ESP_LOGI(TAG_UART, "Valor de Volumen de Inyeccion -> %s", limpieza.Volumen_Inyeccion_str);
+            limpieza.Volumen_Inyeccion = atoi(limpieza.Volumen_Inyeccion_str);
+            xQueueSend(S_Inyeccion, &limpieza, portMAX_DELAY);
+        }
+
         else{ESP_LOGI(TAG_UART, "Dato Recibido Incorrecto");}
     }
 }
@@ -296,11 +335,13 @@ void fin_titulacion()
 
 void volumen_suma_1()
 {
+    volumen_registrado_ant = volumen_registrado;
     volumen_registrado += 1.0;
 }
 
 void volumen_suma_01()
 {
+    volumen_registrado_ant = volumen_registrado;
     volumen_registrado += 0.1;
 }
 
