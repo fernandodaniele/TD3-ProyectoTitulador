@@ -312,7 +312,7 @@ void TaskInyeccion(void *taskParmPtr)
     {
         xQueueReceive(S_Inyeccion, &limpieza_main, portMAX_DELAY);
 
-        TickType_t xPeriodicity     = pdMS_TO_TICKS(T_TITULACION_MS_1ml*limpieza_main.Volumen_Inyeccion); 
+        TickType_t xPeriodicity = pdMS_TO_TICKS(T_TITULACION_MS_1ml*limpieza_main.Volumen_Inyeccion); 
 
         gpio_set_level(P_Giro, limpieza_main.Giro_Limpieza);
 
@@ -407,7 +407,11 @@ void TaskTitulacion(void *taskParmPtr)
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
                 vTaskDelayUntil(&xLastWakeTime, xPeriodicity_1ml);
                 ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-                volumen_suma_1();
+                if(flag_Titular == true)
+                {
+                    volumen_suma_1();    
+                }
+                //volumen_suma_1();
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
@@ -418,7 +422,11 @@ void TaskTitulacion(void *taskParmPtr)
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
                 vTaskDelayUntil(&xLastWakeTime, xPeriodicity_01ml);
                 ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-                volumen_suma_01();
+                if(flag_Titular == true)
+                {
+                    volumen_suma_01();    
+                }
+                //volumen_suma_01();
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 

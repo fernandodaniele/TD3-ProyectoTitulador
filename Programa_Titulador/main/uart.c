@@ -34,7 +34,7 @@ bool flag_Titular   = false;
 //uint8_t flag_Calibracion = 0;
 
 int Volumen_Comp = 35;      // Se coloca como valor de volumen de comp
-char Volumen_Anterior[4];
+char Volumen_Anterior[4] = "35";
 char Volumen_Inflexion_Muestreo[6];
 
 Limpieza limpieza;
@@ -126,17 +126,17 @@ void TaskUart(void *taskParmPtr)
     {
         bzero(Dato, BUFFER_SIZE); // Se borra el espacio de memoria que este en "Dato"
 
-        //int len = uart_read_bytes(UART_NUM, Dato, BUFFER_SIZE, pdMS_TO_TICKS(T_GUARDADO)); // Ver de poner el tiempo de lectura como portMAX_DELAY y sacar el continue 
-        int len = uart_read_bytes(UART_NUM, Dato, BUFFER_SIZE, portMAX_DELAY); 
+        int len = uart_read_bytes(UART_NUM, Dato, BUFFER_SIZE, pdMS_TO_TICKS(T_GUARDADO)); // Ver de poner el tiempo de lectura como portMAX_DELAY y sacar el continue 
+        //int len = uart_read_bytes(UART_NUM, Dato, BUFFER_SIZE, portMAX_DELAY); 
 
-        // if(len == 0)
-        // {
-        //     continue;
-        // }
+        if(len == 0)
+        {
+            continue;
+        }
 
         if(len > 1)
         {
-            if(strcmp(Dato[0], Guardar_Volumen) == 0)
+            if(Dato[0] == 'N')
             {
                 for(int i = 0; i < len - 1; i++)
                 {
@@ -144,7 +144,7 @@ void TaskUart(void *taskParmPtr)
                 } 
             }  
             
-            if(strcmp(Dato[0], Volumen_Inyeccion) == 0)
+            if(Dato[0] == 'R')
             {
                 for(int i = 0; i < len - 1; i++)
                 {
@@ -335,6 +335,7 @@ void fin_titulacion()
 
 void volumen_suma_1()
 {
+    ESP_LOGI(TAG_UART, "Suma 1ml");
     volumen_registrado_ant = volumen_registrado;
     volumen_registrado += 1.0;
 }
@@ -342,6 +343,7 @@ void volumen_suma_1()
 void volumen_suma_01()
 {
     volumen_registrado_ant = volumen_registrado;
+
     volumen_registrado += 0.1;
 }
 
@@ -350,6 +352,7 @@ void eliminar_volumen_registrado()
     volumen_registrado  = 0.0;
     dif_guardado        = 0.0;
     Volumen_Inflexion   = 0.0;
+    ESP_LOGI(TAG_UART, "Volumen -> %.03f", volumen_registrado);
 }
 
 void registrar_volumen_inflexion(float *ptr)
