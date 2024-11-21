@@ -28,14 +28,14 @@
 
 /*==================[Definiciones]======================*/
 
-#define T_TITULACION_MS_01ml    1250    // ---VER---(1150)
+#define T_TITULACION_MS_01ml    1180    // ---VER---(1150)
 #define T_TITULACION_01ml       pdMS_TO_TICKS(T_TITULACION_MS_01ml)
 #define T_TITULACION_MS_1ml     T_TITULACION_MS_01ml*10
 #define T_TITULACION_1ml        pdMS_TO_TICKS(T_TITULACION_MS_1ml)
 #define PROCESADORA             0
 #define PROCESADORB             1
 #define C_MEDICIONES            10
-#define T_MEDICIONES_MS         5000
+#define T_MEDICIONES_MS         7000
 #define T_MEDICIONES            pdMS_TO_TICKS(T_MEDICIONES_MS)
 
 // ---PWM---
@@ -70,7 +70,7 @@ float Volumen_Inflexion;
 float Vout_PH_Ant = 0.0;
 float dif = 0.0;
 float dif_deriv = 0.0;
-float *ptr_dif_deriv = &dif_deriv;
+//float *ptr_dif_deriv = &dif_deriv;
 
 float Arreglo_Volumen[200];
 float Arreglo_PH[200];
@@ -428,10 +428,11 @@ void TaskTitulacion(void *taskParmPtr)
                     Arreglo_Volumen[i] = 0.0;
                     Arreglo_PH[i] = 0.0;
                 }
-                escribeSD("Nueva titulación\n");
+                Vout_PH_Ant = Vout_PH;
+                //escribeSD("Nueva titulación\n");
             }
 
-            if(dif < 0.2)   // Dif de PH 
+            if(dif < 0.1)   // Dif de PH 
             {
                 //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
                 xLastWakeTime = xTaskGetTickCount();
@@ -448,7 +449,7 @@ void TaskTitulacion(void *taskParmPtr)
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
-            if(dif >= 0.2)   // Dif de PH 
+            if(dif >= 0.1)   // Dif de PH 
             {
                 //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
                 xLastWakeTime = xTaskGetTickCount();
@@ -471,6 +472,8 @@ void TaskTitulacion(void *taskParmPtr)
                 eliminar_volumen_registrado();
             }
 
+            vTaskDelay(T_MEDICIONES);   // Tiempo de espera entre cada inyección 
+
             // Cálculo de la diferencia de PH 
             // Lo hacemos aca ya que en el proceso del ADC se esta midiendo constantemente, por lo tanto la dif siempre era muy pequeña
             dif = sqrt(pow((Vout_PH - Vout_PH_Ant), 2));
@@ -483,14 +486,15 @@ void TaskTitulacion(void *taskParmPtr)
             // Calculo de volumen de corte 
             if(dif_deriv > dif_guardado)
             {
-                registrar_volumen_inflexion(ptr_dif_deriv);
+                registrar_volumen_inflexion(dif_deriv);
             }
 
             ESP_LOGI(TAG_MAIN, "\nDif -> %.02f", dif);
+            ESP_LOGI(TAG_MAIN, "Dif Guardado -> %.02f", dif_guardado);
             ESP_LOGI(TAG_MAIN, "Volumen Registrado -> %.02f", volumen_registrado);
             ESP_LOGI(TAG_MAIN, "Volumen Inflexion -> %.02f\n", Volumen_Inflexion);
 
-            vTaskDelay(T_MEDICIONES); // Tiempo de espera entre cada inyección 
+            //vTaskDelay(T_MEDICIONES); // Tiempo de espera entre cada inyección 
             Arreglo_PH[cont] = Vout_PH;
             cont++; 
         }

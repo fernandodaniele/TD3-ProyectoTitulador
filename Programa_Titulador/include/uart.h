@@ -43,6 +43,6 @@ void fin_titulacion();
 void volumen_suma_1();
 void volumen_suma_01();
 void eliminar_volumen_registrado();
-void registrar_volumen_inflexion(float *ptr);
+void registrar_volumen_inflexion(float ptr);
 
 #endif

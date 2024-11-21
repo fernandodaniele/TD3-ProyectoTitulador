@@ -337,32 +337,32 @@ void TaskUart(void *taskParmPtr)
 
 void fin_titulacion()
 {
-    escribeSD("Volumen en punto de equivalencia = ");
-    escribeSDFloat(Volumen_Inflexion);
-    escribeSD("\n");
+    // escribeSD("Volumen en punto de equivalencia = ");
+    // escribeSDFloat(Volumen_Inflexion);
+    // escribeSD("\n");
 
-    //guarda todos lo valores en la SD -- Esto no haría falta
-    escribeSD("Volumen[mL]\tpH\t\tDerivada 1\t\tDerivada 2\n");
+    // //guarda todos lo valores en la SD -- Esto no haría falta
+    // escribeSD("Volumen[mL]\tpH\t\tDerivada 1\t\tDerivada 2\n");
     
-    for(int vol = 1; vol < (cont); vol++)
-    {
-        escribeSDFloat(Arreglo_Volumen[vol]);
-        escribeSD("\t\t");
-        escribeSDFloat(Arreglo_PH[vol]);
-        escribeSD("\t\t");
-        // if((vol<2)||(vol>(cont-2)))
-        // {
-        //     escribeSD("Sin dato\t\tSin dato");
-        // }
-        // else
-        // {
-        //     escribeSDFloat(derivada1 [vol]);
-        //     escribeSD("\t\t\t");
-        //     escribeSDFloat(derivada2 [vol]);
-        // }
-        escribeSD("\n");  
-    }
-    escribeSD("Fin titulación\n\n");  
+    // for(int vol = 1; vol < (cont); vol++)
+    // {
+    //     escribeSDFloat(Arreglo_Volumen[vol]);
+    //     escribeSD("\t\t");
+    //     escribeSDFloat(Arreglo_PH[vol]);
+    //     escribeSD("\t\t");
+    //     // if((vol<2)||(vol>(cont-2)))
+    //     // {
+    //     //     escribeSD("Sin dato\t\tSin dato");
+    //     // }
+    //     // else
+    //     // {
+    //     //     escribeSDFloat(derivada1 [vol]);
+    //     //     escribeSD("\t\t\t");
+    //     //     escribeSDFloat(derivada2 [vol]);
+    //     // }
+    //     escribeSD("\n");  
+    // }
+    // escribeSD("Fin titulación\n\n");  
 
     flag_Titular = false;
     gpio_set_level(P_Enable_Bomba, 1);
@@ -394,8 +394,8 @@ void eliminar_volumen_registrado()
     ESP_LOGI(TAG_UART, "Volumen -> %.03f", volumen_registrado);
 }
 
-void registrar_volumen_inflexion(float *ptr)
+void registrar_volumen_inflexion(float ptr)
 {
-    dif_guardado = *ptr;
+    dif_guardado = ptr;
     Volumen_Inflexion = volumen_registrado;
 }
