@@ -1,5 +1,6 @@
 /*==================[ Inclusiones ]============================================*/
 #include "../include/uart.h"
+#include "../include/sd.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -44,6 +45,10 @@ float Volumen_Inflexion         = 0.0;
 float dif_guardado              = 0.0;
 float volumen_registrado        = 0.0;
 float volumen_registrado_ant    = 0.0;
+
+extern float Arreglo_Volumen[200];
+extern float Arreglo_PH[200];
+extern int cont;
 
 //char *msg = "OK\r\n";
 char *msg = "K";
@@ -144,7 +149,7 @@ void TaskUart(void *taskParmPtr)
                 } 
             }  
             
-            if(Dato[0] == 'R')
+            else
             {
                 for(int i = 0; i < len - 1; i++)
                 {
@@ -262,6 +267,14 @@ void TaskUart(void *taskParmPtr)
             xQueueSend(S_Calibracion, &Buffer_10, portMAX_DELAY);
         }
 
+        else if(strcmp(Dato, Calibrar_OFF) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
+            xQueueSend(S_Calibracion, &Calibrar_OFF, portMAX_DELAY);
+        }
+
         else if(strcmp(Dato, Volumen) == 0)
         {
             //snprintf(Volumen_Anterior, sizeof(Volumen_Anterior), "%d", Volumen_Guardado);
@@ -315,7 +328,7 @@ void TaskUart(void *taskParmPtr)
             //Volumen_Anterior[CARACTERES] = '\0'; 
             ESP_LOGI(TAG_UART, "Valor de Volumen de Inyeccion -> %s", limpieza.Volumen_Inyeccion_str);
             limpieza.Volumen_Inyeccion = atoi(limpieza.Volumen_Inyeccion_str);
-            xQueueSend(S_Inyeccion, &limpieza, portMAX_DELAY);
+            //---xQueueSend(S_Inyeccion, &limpieza, portMAX_DELAY);---
         }
 
         else{ESP_LOGI(TAG_UART, "Dato Recibido Incorrecto");}
@@ -324,6 +337,33 @@ void TaskUart(void *taskParmPtr)
 
 void fin_titulacion()
 {
+    escribeSD("Volumen en punto de equivalencia = ");
+    escribeSDFloat(Volumen_Inflexion);
+    escribeSD("\n");
+
+    //guarda todos lo valores en la SD -- Esto no haría falta
+    escribeSD("Volumen[mL]\tpH\t\tDerivada 1\t\tDerivada 2\n");
+    
+    for(int vol = 1; vol < (cont); vol++)
+    {
+        escribeSDFloat(Arreglo_Volumen[vol]);
+        escribeSD("\t\t");
+        escribeSDFloat(Arreglo_PH[vol]);
+        escribeSD("\t\t");
+        // if((vol<2)||(vol>(cont-2)))
+        // {
+        //     escribeSD("Sin dato\t\tSin dato");
+        // }
+        // else
+        // {
+        //     escribeSDFloat(derivada1 [vol]);
+        //     escribeSD("\t\t\t");
+        //     escribeSDFloat(derivada2 [vol]);
+        // }
+        escribeSD("\n");  
+    }
+    escribeSD("Fin titulación\n\n");  
+
     flag_Titular = false;
     gpio_set_level(P_Enable_Bomba, 1);
     snprintf(Volumen_Inflexion_Muestreo, sizeof(Volumen_Inflexion_Muestreo), "%.02f", Volumen_Inflexion);
@@ -343,7 +383,6 @@ void volumen_suma_1()
 void volumen_suma_01()
 {
     volumen_registrado_ant = volumen_registrado;
-
     volumen_registrado += 0.1;
 }
 

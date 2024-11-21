@@ -15,6 +15,7 @@ esp_err_t root_get_handler(httpd_req_t *req);
 esp_err_t toggle_agitador_handler(httpd_req_t *req);
 esp_err_t PH_get_handler(httpd_req_t *req);
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+char* generateTableRows();
 
 /*==================[Variables]==============================*/
 
@@ -26,14 +27,76 @@ bool flag_agitador_wifi = false;
 extern float Vout_PH;
 char PH_string[6];
 
+extern float Arreglo_Volumen[200];
+extern float Arreglo_PH[200];
+
 extern QueueHandle_t S_Agitador;
 
 /*==================[Implementaciones]=================================*/
 
 // Función para manejar la solicitud desde la página web
+// esp_err_t root_get_handler(httpd_req_t *req) {
+//     // Generar HTML con estilo CSS y JavaScript para actualizar el voltaje
+//     char PH_string[2048];
+//     snprintf(PH_string, sizeof(PH_string),
+//         "<html>"
+//         "<head>"
+//         "<style>"
+//         "body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }"
+//         "h2 { font-size: 2em; }"
+//         "p { font-size: 1.5em; }"
+//         "button { "
+//         "    display: inline-block; "
+//         "    width: 80%%; "
+//         "    padding: 15px; "
+//         "    font-size: 1.2em; "
+//         "    margin: 10px auto; "
+//         "    background-color: #333; "
+//         "    color: white; "
+//         "    border: none; "
+//         "    border-radius: 8px; "
+//         "    cursor: pointer; "
+//         "}"
+//         "button:hover { background-color: #555; }"
+//         "#PH-box { "
+//         "    margin-top: 20px; "
+//         "    font-size: 1.5em; "
+//         "    padding: 10px; "
+//         "    border: 2px solid #333; "
+//         "    display: inline-block; "
+//         "    border-radius: 8px; "
+//         "}"
+//         "@media (min-width: 600px) {"
+//         "    button { width: 300px; }"
+//         "}"
+//         "</style>"
+//         "<script>"
+//         "function updatePH() {"
+//         "    fetch('/Vout_PH').then(response => response.text()).then(data => {"
+//         "        document.getElementById('PH-box').innerText = 'PH: ' + data;"
+//         "    });"
+//         "}"
+//         "setInterval(updatePH, 100);" // Tiempo de Act en ms 
+//         "</script>"
+//         "</head>"
+//         "<body>"
+//         "<h2>ESP32 Servidor WEB</h2>"
+//         "<p>Usando Modo Estacion</p>"
+//         "<p>Estado Agitador: %s</p>"
+//         "<form action=\"/flag_agitador_wifi\"><button>%s</button></form>"
+//         "<div id='PH-box'>PH: -- </div>"
+//         "</body>"
+//         "</html>",
+//         flag_agitador_wifi ? "ON" : "OFF", flag_agitador_wifi ? "OFF" : "ON");
+
+//     // Enviar la respuesta HTML
+//     httpd_resp_send(req, PH_string, strlen(PH_string));
+//     return ESP_OK;
+// }
+
+// root_get_handler modificado
 esp_err_t root_get_handler(httpd_req_t *req) {
-    // Generar HTML con estilo CSS y JavaScript para actualizar el voltaje
-    char PH_string[2048];
+    char PH_string[5376];   //2048
     snprintf(PH_string, sizeof(PH_string),
         "<html>"
         "<head>"
@@ -52,7 +115,7 @@ esp_err_t root_get_handler(httpd_req_t *req) {
         "    border: none; "
         "    border-radius: 8px; "
         "    cursor: pointer; "
-        "}"
+        "} "
         "button:hover { background-color: #555; }"
         "#PH-box { "
         "    margin-top: 20px; "
@@ -61,10 +124,13 @@ esp_err_t root_get_handler(httpd_req_t *req) {
         "    border: 2px solid #333; "
         "    display: inline-block; "
         "    border-radius: 8px; "
-        "}"
+        "} "
+        "table { width: 80%%; margin: 20px auto; border-collapse: collapse; }"
+        "th, td { border: 1px solid black; padding: 8px; text-align: center; }"
+        "th { background-color: #333; color: white; }"
         "@media (min-width: 600px) {"
         "    button { width: 300px; }"
-        "}"
+        "} "
         "</style>"
         "<script>"
         "function updatePH() {"
@@ -72,7 +138,17 @@ esp_err_t root_get_handler(httpd_req_t *req) {
         "        document.getElementById('PH-box').innerText = 'PH: ' + data;"
         "    });"
         "}"
-        "setInterval(updatePH, 100);" // Tiempo de Act en ms 
+        "function updateTable() {"
+        "    fetch('/arrays').then(response => response.json()).then(data => {"
+        "        const table = document.getElementById('data-table');"
+        "        for (let i = 0; i < 100; i++) {"
+        "            table.rows[i + 1].cells[0].innerText = data.Volumen[i].toFixed(2);"
+        "            table.rows[i + 1].cells[1].innerText = data.PH[i].toFixed(2);"
+        "        }"
+        "    });"
+        "}"
+        "setInterval(updatePH, 100);"
+        "setInterval(updateTable, 100);"
         "</script>"
         "</head>"
         "<body>"
@@ -80,14 +156,29 @@ esp_err_t root_get_handler(httpd_req_t *req) {
         "<p>Usando Modo Estacion</p>"
         "<p>Estado Agitador: %s</p>"
         "<form action=\"/flag_agitador_wifi\"><button>%s</button></form>"
-        "<div id='PH-box'>PH: -- </div>"
+        "<div id='PH-box'>PH: --</div>"
+        "<h3>Tabla de valores</h3>"
+        "<table id='data-table'>"
+        "<tr><th>Volumen</th><th>PH</th></tr>"
+        "%s"
+        "</table>"
         "</body>"
         "</html>",
-        flag_agitador_wifi ? "ON" : "OFF", flag_agitador_wifi ? "OFF" : "ON");
+        flag_agitador_wifi ? "ON" : "OFF", flag_agitador_wifi ? "OFF" : "ON", generateTableRows());
 
-    // Enviar la respuesta HTML
     httpd_resp_send(req, PH_string, strlen(PH_string));
     return ESP_OK;
+}
+
+// Generar filas iniciales para la tabla
+char* generateTableRows() {
+    static char rows[4096];
+    strcpy(rows, "");
+    for (int i = 0; i < 100; i++) {
+        snprintf(rows + strlen(rows), sizeof(rows) - strlen(rows),
+                 "<tr><td>%.2f</td><td>%.2f</td></tr>", Arreglo_Volumen[i], Arreglo_PH[i]);
+    }
+    return rows;
 }
 
 // Función para alternar el estado del Agitador
@@ -102,6 +193,27 @@ esp_err_t PH_get_handler(httpd_req_t *req) {
     // Crear la respuesta con el voltaje actual
     snprintf(PH_string, sizeof(PH_string), "%.02f", Vout_PH);
     httpd_resp_send(req, PH_string, strlen(PH_string));
+    return ESP_OK;
+}
+
+// Manejador para enviar los valores de los arreglos en formato JSON
+esp_err_t array_get_handler(httpd_req_t *req) {
+    char json_response[4096]; // Ajustar tamaño según los datos
+    snprintf(json_response, sizeof(json_response), "{ \"Volumen\": [");
+    for (int i = 0; i < 100; i++) {
+        snprintf(json_response + strlen(json_response), sizeof(json_response) - strlen(json_response),
+                 "%.2f%s", Arreglo_Volumen[i], (i < 99) ? ", " : "");
+    }
+    snprintf(json_response + strlen(json_response), sizeof(json_response) - strlen(json_response),
+             "], \"PH\": [");
+    for (int i = 0; i < 100; i++) {
+        snprintf(json_response + strlen(json_response), sizeof(json_response) - strlen(json_response),
+                 "%.2f%s", Arreglo_PH[i], (i < 99) ? ", " : "");
+    }
+    snprintf(json_response + strlen(json_response), sizeof(json_response) - strlen(json_response), "]}");
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_response, strlen(json_response));
     return ESP_OK;
 }
 
@@ -130,6 +242,11 @@ httpd_handle_t start_webserver(void) {
             .uri = "/Vout_PH", .method = HTTP_GET, .handler = PH_get_handler, .user_ctx = NULL
         };
         httpd_register_uri_handler(server, &uri_Vout_PH);
+
+        httpd_uri_t uri_arrays = {
+            .uri = "/arrays", .method = HTTP_GET, .handler = array_get_handler, .user_ctx = NULL
+        };
+        httpd_register_uri_handler(server, &uri_arrays);
     }
     return server;
 }

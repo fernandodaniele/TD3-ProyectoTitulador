@@ -24,6 +24,7 @@
 #include "uart.c"
 #include "adc.c"
 #include "wifi.c"
+#include "sd.c"
 
 /*==================[Definiciones]======================*/
 
@@ -34,7 +35,7 @@
 #define PROCESADORA             0
 #define PROCESADORB             1
 #define C_MEDICIONES            10
-#define T_MEDICIONES_MS         1000
+#define T_MEDICIONES_MS         5000
 #define T_MEDICIONES            pdMS_TO_TICKS(T_MEDICIONES_MS)
 
 // ---PWM---
@@ -70,6 +71,10 @@ float Vout_PH_Ant = 0.0;
 float dif = 0.0;
 float dif_deriv = 0.0;
 float *ptr_dif_deriv = &dif_deriv;
+
+float Arreglo_Volumen[200];
+float Arreglo_PH[200];
+int cont = 0;
 
 extern float Volumen_Inflexion;
 extern float Vout_PH;
@@ -147,6 +152,9 @@ void app_main(void)
 
     // Iniciar ADC
     adc_init();
+
+    // Iniciar SD
+    inicializarSD();
 
     BaseType_t err = xTaskCreatePinnedToCore(
         TaskAgitador,                     	// Funcion de la tarea a ejecutar
@@ -307,6 +315,11 @@ void TaskInyeccion(void *taskParmPtr)
 
     /*==================[Configuraciones]======================*/
 
+    //esp_rom_gpio_pad_select_gpio(P_Motor);
+    esp_rom_gpio_pad_select_gpio(P_Giro);
+    //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
+    gpio_set_direction(P_Giro, GPIO_MODE_OUTPUT);
+
     /*==================[Bucle]======================*/
     while(1)
     {
@@ -314,7 +327,7 @@ void TaskInyeccion(void *taskParmPtr)
 
         TickType_t xPeriodicity = pdMS_TO_TICKS(T_TITULACION_MS_1ml*limpieza_main.Volumen_Inyeccion); 
 
-        gpio_set_level(P_Giro, limpieza_main.Giro_Limpieza);
+        //gpio_set_level(P_Giro, limpieza_main.Giro_Limpieza);
 
         TickType_t xLastWakeTime = xTaskGetTickCount();
         ESP_LOGI(TAG_MAIN, "Bomba Encendida");
@@ -359,7 +372,10 @@ void TaskCalibracion(void *taskParmPtr)
             ESP_LOGI(TAG_MAIN, "Calibración PH10");
             valoresCalibracion.lectura_PH10 = Vout_filtrada_corregida;
             ESP_LOGI(TAG_MAIN, "%.03f", valoresCalibracion.lectura_PH10);
+        }
 
+        if(strcmp(estado_calibracion, "B") == 0)
+        {
             adc_calibracion();
 
             // Conversion de la pendiente y la ordenada a variables enteras para poder guardarlas en la falsh 
@@ -397,9 +413,24 @@ void TaskTitulacion(void *taskParmPtr)
     */
     while(1)
     {
-        //xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);
+        //xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);´
+        if(flag_Titular == false && cont != 0)
+        {
+            cont = 0;
+        }
+
         if(flag_Titular == true)
         {
+            if(cont == 0)
+            {
+                for(int i = 0; i < 200; i++)
+                {
+                    Arreglo_Volumen[i] = 0.0;
+                    Arreglo_PH[i] = 0.0;
+                }
+                escribeSD("Nueva titulación\n");
+            }
+
             if(dif < 0.2)   // Dif de PH 
             {
                 //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
@@ -410,6 +441,8 @@ void TaskTitulacion(void *taskParmPtr)
                 if(flag_Titular == true)
                 {
                     volumen_suma_1();    
+                    Arreglo_Volumen[cont] = volumen_registrado;
+                    //cont++;
                 }
                 //volumen_suma_1();
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
@@ -425,13 +458,15 @@ void TaskTitulacion(void *taskParmPtr)
                 if(flag_Titular == true)
                 {
                     volumen_suma_01();    
+                    Arreglo_Volumen[cont] = volumen_registrado;
+                    //cont++;
                 }
                 //volumen_suma_01();
                 //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
             if(volumen_registrado >= Volumen_Comp) 
-            {
+            { 
                 fin_titulacion();
                 eliminar_volumen_registrado();
             }
@@ -456,6 +491,8 @@ void TaskTitulacion(void *taskParmPtr)
             ESP_LOGI(TAG_MAIN, "Volumen Inflexion -> %.02f\n", Volumen_Inflexion);
 
             vTaskDelay(T_MEDICIONES); // Tiempo de espera entre cada inyección 
+            Arreglo_PH[cont] = Vout_PH;
+            cont++; 
         }
         vTaskDelay(pdMS_TO_TICKS(100));
         //volumen(ptr_dif); 

@@ -16,7 +16,8 @@
     "idf.toolsPathWin": "C:\\Users\\ricar\\.espressif",
     "files.associations": {
         "stdbool.h": "c",
-        "uart.h": "c"
+        "uart.h": "c",
+        "sdspi_host.h": "c"
     },
     "idf.gitPathWin": "C:\\Users\\ricar\\.espressif\\tools\\idf-git\\2.39.2\\cmd\\git.exe",
     "idf.flashType": "UART"
