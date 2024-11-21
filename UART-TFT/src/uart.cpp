@@ -2,7 +2,7 @@
  * Autor: Fernando Ezequiel Daniele <fernandodaniele1993@gmai.com>
  * Fecha: 2020/12/21
  *===========================================================================*/
-#include "Arduino.h"
+
 #include "uart.h"
 
 #define INICIO_CAL          'A' 		
@@ -22,271 +22,106 @@
 #define ESTADO_AGITADOR     'O'
 #define HABILITA_AGIT	    'P'
 #define DESHABILITA_AGIT    'Q'
+#define INYECTA_VOLUMEN     'R'
+#define BARRA               '/'
 
-void iniciarUart ()
-{
+void iniciarUart (){
     Serial.begin(115200);
 }
 
-int estadoTitulacion(float *val)
-{
+byte confirmacion(){
     unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 500))
-        {
+    while(Serial.available()==0){
+        if(millis()> (tOut + 1000)){
             return 0;
         }
     }
-    String ack = Serial.readStringUntil('/');
-    if (ack == FIN_TIT)
-    {
-        unsigned long tOut = millis ();
-        /*while(Serial.available()==0)
-        {
-            if(millis()> (tOut + 1000))
-            {
-                return 0;
-            }
-        }*/
-        String temp = Serial.readStringUntil('/');
+    String ack = Serial.readStringUntil(BARRA);
+    if (ack == "K"){
+        return 1;   //se escribió correctamente
+    }
+    else{
+        return 0;   //hubo error
+    }
+}  
+
+byte estadoTitulacion(float *val){
+    unsigned long tOut = millis ();
+    while(Serial.available()==0){
+        if(millis()> (tOut + 500)){
+            return 0;
+        }
+    }
+    String ack = Serial.readStringUntil(BARRA);
+    if (ack == FIN_TIT){
+        String temp = Serial.readStringUntil(BARRA);
         *val = temp.toFloat();
         return 1;   //finalizo la titulacion
     }
-    else
-    {
+    else{
         return 0;   //continua la titulacion
     } 
 }
 
-int iniciarCalibracion(){
+byte iniciarCalibracion(){
     Serial.write(INICIO_CAL);    //envia comando
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }  
+    return confirmacion();  
 }
 
-int finalizarCalibracion(){
+byte finalizarCalibracion(){
     Serial.write(FIN_CAL);    //envia comando
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }  
+    return confirmacion();  
 }
 
-int leerPotencial(float *val){
+byte leerPotencial(float *val){
     Serial.write(LECTURA_POTENCIAL);    //envia comando
     unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
+    while(Serial.available()==0){
+        if(millis()> (tOut + 1000)){
             return 0;
         }
     }
-    String temp = Serial.readStringUntil('/');
+    String temp = Serial.readStringUntil(BARRA);
     *val = temp.toFloat();
     return 1;
 }
 
-int calibrarBufferA()
-{
+byte calibrarBufferA(){
     Serial.write(GRABA_BUFFER4);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }
 
-int calibrarBufferB()
-{
+byte calibrarBufferB(){
     Serial.write(GRABA_BUFFER7);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }
 
-int calibrarBufferC()
-{
+byte calibrarBufferC(){
     Serial.write(GRABA_BUFFER10);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }
 
-int iniciarTitulacion()
-{
+byte iniciarTitulacion(){
     Serial.write(INICIO_TIT);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }
 
-int leerPH(float *val){
-    Serial.write(LECTURA_PH);    //envia comando
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String temp = Serial.readStringUntil('/');
-    *val = temp.toFloat();
-    *val = *val/100;
-    return 1;
-}
-
-int cancelarTitulacion()
-{
+byte cancelarTitulacion(){
     Serial.write(CANCELA_TIT);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }
 
-int iniciarLimpieza()
-{
+byte iniciarLimpieza(){
     Serial.write(INICIO_LIMPIEZA);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }           
+    return confirmacion();           
 }
 
-int finalizarLimpieza()
-{
+byte finalizarLimpieza(){
     Serial.write(FIN_LIMPIEZA);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }       
+    return confirmacion();       
 }
 
-int leerVolumenCorte(int *val){
+byte leerVolumenCorte(int *val){
     Serial.write(LEE_VOLUMEN);    //envia comando para leer el valor de buffer A
     Serial.flush();
     unsigned long tOut = millis ();
@@ -297,89 +132,30 @@ int leerVolumenCorte(int *val){
             return 0;
         }
     }
-    String temp = Serial.readStringUntil('/');
+    String temp = Serial.readStringUntil(BARRA);
     *val = temp.toInt();
     return 1;
 }
 
-int guardarVolumenCorte(char * val)
-{
+byte guardarVolumenCorte(char * val){
     Serial.write(GUARDA_VOLUMEN);
     Serial.write(val);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }
 
-int estadoAgitador(char *val){
-    Serial.write(ESTADO_AGITADOR);    //envia comando para leer el valor de buffer A
-    Serial.flush();
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    *val = Serial.read();
-    return 1;
+byte InyectarVolumen(char * val){
+    Serial.write(INYECTA_VOLUMEN);
+    Serial.write(val);
+    return confirmacion();    
 }
 
-int habilitarAgitador()
-{
+byte habilitarAgitador(){
     Serial.write(HABILITA_AGIT);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();
+      
 }
 
-int deshabilitarAgitador()
-{
+byte deshabilitarAgitador(){
     Serial.write(DESHABILITA_AGIT);
-    unsigned long tOut = millis ();
-    while(Serial.available()==0)
-    {
-        if(millis()> (tOut + 1000))
-        {
-            return 0;
-        }
-    }
-    String ack = Serial.readStringUntil('/');
-    if (ack == "K")
-    {
-        return 1;   //se escribió correctamente
-    }
-    else
-    {
-        return 0;   //hubo error
-    }    
+    return confirmacion();    
 }

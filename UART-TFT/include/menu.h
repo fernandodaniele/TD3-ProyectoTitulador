@@ -3,8 +3,8 @@
  * Fecha: 2020/08/12
  *===========================================================================*/
 
-#ifndef MISPROGRAMAS_PDM_TP_FINAL_INC_MENU_H_
-#define MISPROGRAMAS_PDM_TP_FINAL_INC_MENU_H_
+#ifndef MENU_H
+#define MENU_H
 
 #include <Arduino.h>
 // Funciones de la MEF

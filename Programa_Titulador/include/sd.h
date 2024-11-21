@@ -12,9 +12,15 @@ void desmontarSD();
 
 //ejemplo de guardado de tabla
 /*
+<<<<<<< HEAD
 escribeSD("Nueva titulación\n");    // Cuando comienza la titulación 
 
 //Guarda el resultado en la SD (faltaría en WiFi)   // Cuando finializa la titulaoción 
+=======
+escribeSD("Nueva titulación\n");
+
+//Guarda el resultado en la SD (faltaría en WiFi)
+>>>>>>> dde2b5c5b43463e871f1baeb1bdac8bf1ca93d7d
             escribeSD("Volumen en punto de equivalencia = ");
             escribeSDFloat(volumenFinal);
             escribeSD("\n");
@@ -24,7 +30,11 @@ escribeSD("Nueva titulación\n");    // Cuando comienza la titulación
             
             for(int vol = 1; vol < (cont); vol++)
             {
+<<<<<<< HEAD
                 escribeSDFloat(volumenInyectado[vol]);
+=======
+                escribeSDFloat(volumenInyectado[vol]/10.0);
+>>>>>>> dde2b5c5b43463e871f1baeb1bdac8bf1ca93d7d
                 escribeSD("\t\t");
                 escribeSDFloat(titulacionPH[vol]);
                 escribeSD("\t\t");
