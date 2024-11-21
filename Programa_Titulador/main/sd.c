@@ -1,11 +1,7 @@
 /*
 Módulo para la lectura/escritura del archivos en una tarjeta de memoria SD
 */
-<<<<<<< HEAD
 #include "../include/sd.h"
-=======
-#include "sd.h"
->>>>>>> dde2b5c5b43463e871f1baeb1bdac8bf1ca93d7d
 #include <stdio.h>
 #include <string.h>
 #include <sys/unistd.h>
@@ -27,11 +23,7 @@ Módulo para la lectura/escritura del archivos en una tarjeta de memoria SD
 #define PIN_NUM_CLK  14
 #define PIN_NUM_CS   13
 
-<<<<<<< HEAD
 static const char *TAG_SD = "example";
-=======
-static const char *TAG = "example";
->>>>>>> dde2b5c5b43463e871f1baeb1bdac8bf1ca93d7d
 
 void inicializarSD()
 {
@@ -60,11 +52,7 @@ void inicializarSD()
     };
     ret = spi_bus_initialize(host.slot, &bus_cfg, SPI_DMA_CHANNEL);
     if (ret != ESP_OK) {
-<<<<<<< HEAD
         ESP_LOGE(TAG_SD, "Failed to initialize bus.");
-=======
-        ESP_LOGE(TAG, "Failed to initialize bus.");
->>>>>>> dde2b5c5b43463e871f1baeb1bdac8bf1ca93d7d
         return;
     }
 
@@ -78,17 +66,10 @@ void inicializarSD()
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
-<<<<<<< HEAD
             ESP_LOGE(TAG_SD, "Failed to mount filesystem. "
                 "If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
         } else {
             ESP_LOGE(TAG_SD, "Failed to initialize the card (%s). "
-=======
-            ESP_LOGE(TAG, "Failed to mount filesystem. "
-                "If you want the card to be formatted, set the EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
-        } else {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
->>>>>>> dde2b5c5b43463e871f1baeb1bdac8bf1ca93d7d
                 "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
         }
         return;
