@@ -34,66 +34,6 @@ extern QueueHandle_t S_Agitador;
 
 /*==================[Implementaciones]=================================*/
 
-// Función para manejar la solicitud desde la página web
-// esp_err_t root_get_handler(httpd_req_t *req) {
-//     // Generar HTML con estilo CSS y JavaScript para actualizar el voltaje
-//     char PH_string[2048];
-//     snprintf(PH_string, sizeof(PH_string),
-//         "<html>"
-//         "<head>"
-//         "<style>"
-//         "body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }"
-//         "h2 { font-size: 2em; }"
-//         "p { font-size: 1.5em; }"
-//         "button { "
-//         "    display: inline-block; "
-//         "    width: 80%%; "
-//         "    padding: 15px; "
-//         "    font-size: 1.2em; "
-//         "    margin: 10px auto; "
-//         "    background-color: #333; "
-//         "    color: white; "
-//         "    border: none; "
-//         "    border-radius: 8px; "
-//         "    cursor: pointer; "
-//         "}"
-//         "button:hover { background-color: #555; }"
-//         "#PH-box { "
-//         "    margin-top: 20px; "
-//         "    font-size: 1.5em; "
-//         "    padding: 10px; "
-//         "    border: 2px solid #333; "
-//         "    display: inline-block; "
-//         "    border-radius: 8px; "
-//         "}"
-//         "@media (min-width: 600px) {"
-//         "    button { width: 300px; }"
-//         "}"
-//         "</style>"
-//         "<script>"
-//         "function updatePH() {"
-//         "    fetch('/Vout_PH').then(response => response.text()).then(data => {"
-//         "        document.getElementById('PH-box').innerText = 'PH: ' + data;"
-//         "    });"
-//         "}"
-//         "setInterval(updatePH, 100);" // Tiempo de Act en ms 
-//         "</script>"
-//         "</head>"
-//         "<body>"
-//         "<h2>ESP32 Servidor WEB</h2>"
-//         "<p>Usando Modo Estacion</p>"
-//         "<p>Estado Agitador: %s</p>"
-//         "<form action=\"/flag_agitador_wifi\"><button>%s</button></form>"
-//         "<div id='PH-box'>PH: -- </div>"
-//         "</body>"
-//         "</html>",
-//         flag_agitador_wifi ? "ON" : "OFF", flag_agitador_wifi ? "OFF" : "ON");
-
-//     // Enviar la respuesta HTML
-//     httpd_resp_send(req, PH_string, strlen(PH_string));
-//     return ESP_OK;
-// }
-
 // root_get_handler modificado
 esp_err_t root_get_handler(httpd_req_t *req) {
     char PH_string[5376];   //2048

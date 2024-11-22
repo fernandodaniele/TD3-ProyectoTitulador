@@ -76,10 +76,6 @@ void adc_init()
 void TaskADC(void *taskParmPtr)
 {
     /*==================[Configuraciones]======================*/
-    // for(int i = 0; i <= 4096; i++)
-    // {
-    //     veces[i] = 0;
-    // }
 
     /*==================[Bucle]======================*/
     while (1) {
@@ -100,12 +96,8 @@ void TaskADC(void *taskParmPtr)
         else if(modo == CONVERSION)
         {
             Vout_filtrada_corregida = (LecturaFiltrada * T_MAX_ADC) / BITS12;
-            //Vout_PH = ((LecturaFiltrada)*T_PH) / BITS12; 
-            //Vout_PH = Vout_PH*1.8529;
-            //Vout_PH = -7.2286*Vout_filtrada_corregida + 24.662;
             Vout_PH = (Vout_filtrada_corregida - valoresRecta.Ordenada) / valoresRecta.Pendiente;
             //Vout_PH = (Vout_filtrada_corregida - 3.41) / (-0.13833); 
-            
             modo++;
         }
 
@@ -127,23 +119,19 @@ void TaskADC(void *taskParmPtr)
 
 void lectura(char valor_actual)
 {
-    // ---Codigo referente a la lectura del valor para calibra---
+    // ---Codigo referente a la lectura del valor para calibrar---
     // ---Aprox 2 min para que estabilice la medicion---
-    // int n = 0;
     switch(valor_actual)
     {
         case 'D':       // PH 4
-            // ---AGREGAR CODIGO DE APROXIMACIÓN---
             valoresCalibracion.lectura_PH4 = Vout_filtrada_corregida;
             break;
         
         case 'E':       // PH 7
-            // ---AGREGAR CODIGO DE APROXIMACIÓN---
             valoresCalibracion.lectura_PH7 = Vout_filtrada_corregida;
             break;
 
         case 'F':       // PH 10
-            // ---AGREGAR CODIGO DE APROXIMACIÓN---
             valoresCalibracion.lectura_PH10 = Vout_filtrada_corregida;
             break;
     }
@@ -164,31 +152,3 @@ void adc_calibracion()
     valoresRecta.Ordenada = valoresRecta.MediaY - valoresRecta.Pendiente * valoresRecta.MediaX;
     ESP_LOGI(TAG_ADC, "Pendiente -> %f - Ordenada -> %f", valoresRecta.Pendiente, valoresRecta.Ordenada);
 }
-
-// void volumen(float *ptr)
-// {
-//     // ---ACA VA EL CÓDIGO REFEENTE A LA COMPARACIÓN DE VALORES DE PH PARA CONOCER EL PUNTO DE INFLEXIÓN---
-//     muestras[0] = Vout_PH;
-//     for(int i = 0; i < CANTIDAD_MUESTRAS; i++)
-//     {
-//         prom += MULTIPLICADOR*muestras[i];
-//     }
-//     for(int j = 0; j < CANTIDAD_MUESTRAS; j++)
-//     {
-//         prom_pasadas += MULTIPLICADOR*muestras_pasadas[j];
-//     }
-
-//     if(muestras_pasadas[CANTIDAD_MUESTRAS - 1] != 0)
-//     {
-//         *ptr = fabs(prom - prom_pasadas);   // Valor absoluto
-//     }
-
-//     for(int n = 0; n < CANTIDAD_MUESTRAS; n++)
-//     {
-//         muestras_pasadas[n] = muestras[n];
-//     }
-//     for(int m = CANTIDAD_MUESTRAS - 1; m >= CANTIDAD_MUESTRAS - (CANTIDAD_MUESTRAS - 1); m--)
-//     {
-//         muestras[m] = muestras[m-1];
-//     }
-// }

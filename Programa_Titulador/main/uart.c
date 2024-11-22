@@ -31,8 +31,6 @@ char valor[6];
 
 bool flag_Agitador  = false;
 bool flag_Titular   = false;
-//bool flag_Limpieza = false;
-//uint8_t flag_Calibracion = 0;
 
 int Volumen_Comp = 35;      // Se coloca como valor de volumen de comp
 char Volumen_Anterior[4] = "35";
@@ -72,10 +70,8 @@ const char *Agitador_ON         = "P";
 const char *Agitador_OFF        = "Q";
 const char *Volumen_Inyeccion   = "R";
 
-// int largo, largo2;
 
 extern QueueHandle_t S_Agitador;
-//extern SemaphoreHandle_t S_Limpieza;
 extern QueueHandle_t S_Limpieza;
 extern QueueHandle_t S_Calibracion;
 extern QueueHandle_t S_Titulacion;
@@ -159,16 +155,11 @@ void TaskUart(void *taskParmPtr)
         }
 
         ESP_LOGI(TAG_UART, "len -> %d", len);
-
-        // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
-        //uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
         ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Dato);
         
-
         // Recortamos el dato que se recibe
         Dato[1] = '\0';
 
-        //ESP_LOGI(TAG_UART, "Largo Dato -> %d - %d", strlen(Dato), strlen(AI));
         ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Dato);
         ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Volumen_Anterior);
 

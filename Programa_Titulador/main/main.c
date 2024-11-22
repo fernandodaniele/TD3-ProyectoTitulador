@@ -1,9 +1,9 @@
 /**
  * @file main.c
- * @author Ezequiel Combina
- * @brief Agitador, Calibración y Limpieza de la bomba
+ * @author Ezequiel Combina - Rodrigo Chiavassa - Guillermo Giorgis
+ * @brief Titulador Automático
  * @version 0.1
- * @date 2024-06-09
+ * @date 2024-11-22
  * 
  * @copyright Copyright (c) 2024
  * 
@@ -28,14 +28,14 @@
 
 /*==================[Definiciones]======================*/
 
-#define T_TITULACION_MS_01ml    1180    // ---VER---(1150)
+#define T_TITULACION_MS_01ml    1180    // (1150)
 #define T_TITULACION_01ml       pdMS_TO_TICKS(T_TITULACION_MS_01ml)
 #define T_TITULACION_MS_1ml     T_TITULACION_MS_01ml*10
 #define T_TITULACION_1ml        pdMS_TO_TICKS(T_TITULACION_MS_1ml)
 #define PROCESADORA             0
 #define PROCESADORB             1
 #define C_MEDICIONES            10
-#define T_MEDICIONES_MS         7000
+#define T_MEDICIONES_MS         7000    // Tiempo entre cada Inyeccion
 #define T_MEDICIONES            pdMS_TO_TICKS(T_MEDICIONES_MS)
 
 // ---PWM---
@@ -70,7 +70,6 @@ float Volumen_Inflexion;
 float Vout_PH_Ant = 0.0;
 float dif = 0.0;
 float dif_deriv = 0.0;
-//float *ptr_dif_deriv = &dif_deriv;
 
 float Arreglo_Volumen[200];
 float Arreglo_PH[200];
@@ -341,8 +340,6 @@ void TaskInyeccion(void *taskParmPtr)
 void TaskCalibracion(void *taskParmPtr)
 {
     /*==================[Configuraciones]======================*/
-    //esp_rom_gpio_pad_select_gpio(P_Motor);
-    //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
 
     char *estado_calibracion;
 
@@ -396,10 +393,6 @@ void TaskCalibracion(void *taskParmPtr)
 void TaskTitulacion(void *taskParmPtr)
 {
     /*==================[Configuraciones]======================*/
-    //bool flag_Titulacion_main;
-
-    // float dif = 0;
-    // float *ptr_dif = &dif;
 
     TickType_t xPeriodicity_1ml     = T_TITULACION_1ml; 
     TickType_t xPeriodicity_01ml    = T_TITULACION_01ml; 
@@ -434,7 +427,6 @@ void TaskTitulacion(void *taskParmPtr)
 
             if(dif < 0.1)   // Dif de PH 
             {
-                //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
                 xLastWakeTime = xTaskGetTickCount();
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
                 vTaskDelayUntil(&xLastWakeTime, xPeriodicity_1ml);
@@ -443,15 +435,11 @@ void TaskTitulacion(void *taskParmPtr)
                 {
                     volumen_suma_1();    
                     Arreglo_Volumen[cont] = volumen_registrado;
-                    //cont++;
                 }
-                //volumen_suma_1();
-                //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
             if(dif >= 0.1)   // Dif de PH 
             {
-                //Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
                 xLastWakeTime = xTaskGetTickCount();
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
                 vTaskDelayUntil(&xLastWakeTime, xPeriodicity_01ml);
@@ -460,10 +448,7 @@ void TaskTitulacion(void *taskParmPtr)
                 {
                     volumen_suma_01();    
                     Arreglo_Volumen[cont] = volumen_registrado;
-                    //cont++;
                 }
-                //volumen_suma_01();
-                //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
             }
 
             if(volumen_registrado >= Volumen_Comp) 
@@ -494,14 +479,10 @@ void TaskTitulacion(void *taskParmPtr)
             ESP_LOGI(TAG_MAIN, "Volumen Registrado -> %.02f", volumen_registrado);
             ESP_LOGI(TAG_MAIN, "Volumen Inflexion -> %.02f\n", Volumen_Inflexion);
 
-            //vTaskDelay(T_MEDICIONES); // Tiempo de espera entre cada inyección 
             Arreglo_PH[cont] = Vout_PH;
             cont++; 
         }
         vTaskDelay(pdMS_TO_TICKS(100));
-        //volumen(ptr_dif); 
-
-        // ---MANDAR J## (## = VOLUMEN EN EL PUNTO DE INFLECCIÓN) CUANDO TERMINE LA TITULACION POR CUALQUIERA DE LOS DOS METODOS---
     } 
 }
 
